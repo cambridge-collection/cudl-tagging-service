@@ -61,12 +61,17 @@ public class CrowdsourcingController {
 
     private final CrowdsourcingDao dataSource;
     private final Set<String> allowedRoles = USER_ROLES;
+    private final TermCombiner termCombiner;
 
     @Autowired
-    public CrowdsourcingController(CrowdsourcingDao crowdsourcingDao) {
+    public CrowdsourcingController(
+        CrowdsourcingDao crowdsourcingDao, TermCombiner termCombiner) {
+
         Assert.notNull(crowdsourcingDao);
+        Assert.notNull(termCombiner);
 
         this.dataSource = crowdsourcingDao;
+        this.termCombiner = termCombiner;
     }
 
     private static final CacheControl CACHE_PRIVATE = CacheControl.noCache();
@@ -189,7 +194,8 @@ public class CrowdsourcingController {
         DocumentTags docRemovedTags = dataSource.getRemovedTagsByDocument(documentId);
         DocumentAnnotations docAnnotations = dataSource.getAnnotationsByDocument(documentId);
 
-        DocumentTerms docARTTerms = new TermCombiner().combine_Anno_Tag_RemovedTag(docAnnotations, docTags, docRemovedTags);
+        DocumentTerms docARTTerms = termCombiner.combine_Anno_Tag_RemovedTag(
+            docAnnotations, docTags, docRemovedTags);
 
         return ResponseEntity.ok()
                 .cacheControl(CACHE_PUBLIC_INFREQUENTLY_CHANGING)
