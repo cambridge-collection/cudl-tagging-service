@@ -1,15 +1,5 @@
 package ulcambridge.foundations.viewer.rdf;
 
-import java.io.IOException;
-import java.util.Date;
-import java.util.Locale;
-
-import org.apache.commons.io.Charsets;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.springframework.http.MediaType;
-
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
@@ -17,14 +7,19 @@ import com.hp.hpl.jena.vocabulary.DC;
 import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.DCTypes;
 import com.hp.hpl.jena.vocabulary.RDF;
-
-import ulcambridge.foundations.viewer.JSONReader;
+import io.jsonwebtoken.lang.Assert;
+import org.apache.commons.io.Charsets;
+import org.springframework.http.MediaType;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
+import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
+import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolverException;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Position;
-import ulcambridge.foundations.viewer.model.Properties;
 import ulcambridge.foundations.viewer.rdf.vocab.Content;
 import ulcambridge.foundations.viewer.rdf.vocab.Foaf;
 import ulcambridge.foundations.viewer.rdf.vocab.Oa;
+
+import java.util.Date;
+import java.util.Locale;
 
 /**
  *
@@ -34,12 +29,15 @@ import ulcambridge.foundations.viewer.rdf.vocab.Oa;
 public class RDFReader {
 
     private Model model;
-
     private String baseUrl;
-
     private String userId;
+    private final ImageResolver imageResolver;
 
-    public RDFReader(String userId, String baseUrl) {
+    public RDFReader(String userId, String baseUrl,
+                     ImageResolver imageResolver) {
+
+        Assert.notNull(imageResolver);
+
         // initialise model
         model = ModelFactory.createDefaultModel();
         model.setNsPrefix("foaf", Foaf.NS);
@@ -50,6 +48,7 @@ public class RDFReader {
 
         this.baseUrl = baseUrl;
         this.userId = userId;
+        this.imageResolver = imageResolver;
     }
 
     public String getBaseUrl() {
@@ -72,9 +71,10 @@ public class RDFReader {
         return model;
     }
 
-    public void addElement(Annotation annotation, String documentId) {
-        if (model == null)
-            return;
+    public void addElement(Annotation annotation, String documentId)
+        throws ImageResolverException {
+
+        Assert.notNull(this.model);
 
         String name = annotation.getName();
         String type = annotation.getType();
@@ -136,24 +136,10 @@ public class RDFReader {
         }
     }
 
-    private String getDisplayImageURL(String documentId, int pageNo) {
-        JSONReader jr = new JSONReader();
-        StringBuilder dziUrl = new StringBuilder();
+    private String getDisplayImageURL(String documentId, int pageNo)
+        throws ImageResolverException {
 
-        JSONObject docJson;
-        try {
-            docJson = jr.readJsonFromUrl(Properties.getString("jsonURL") + documentId + ".json");
-            JSONArray pagesJA = docJson.getJSONArray("pages");
-            JSONObject pageJ = (JSONObject) pagesJA.get(pageNo - 1);
-            String imageUrl = pageJ.getString("displayImageURL");
-            dziUrl.append(Properties.getString("imageServer")).append(imageUrl.substring(1));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-
-        return dziUrl.toString();
+        return this.imageResolver.resolveImageUrl(documentId, pageNo);
     }
 
 }

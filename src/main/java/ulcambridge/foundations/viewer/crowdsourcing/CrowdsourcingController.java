@@ -24,6 +24,8 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentAnnotations;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTags;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTerms;
+import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
+import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolverException;
 import ulcambridge.foundations.viewer.crowdsourcing.model.JsonResponse;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
@@ -62,16 +64,20 @@ public class CrowdsourcingController {
     private final CrowdsourcingDao dataSource;
     private final Set<String> allowedRoles = USER_ROLES;
     private final TermCombiner termCombiner;
+    private final ImageResolver imageResolver;
 
     @Autowired
     public CrowdsourcingController(
-        CrowdsourcingDao crowdsourcingDao, TermCombiner termCombiner) {
+        CrowdsourcingDao crowdsourcingDao, TermCombiner termCombiner,
+        ImageResolver imageResolver) {
 
         Assert.notNull(crowdsourcingDao);
         Assert.notNull(termCombiner);
+        Assert.notNull(imageResolver);
 
         this.dataSource = crowdsourcingDao;
         this.termCombiner = termCombiner;
+        this.imageResolver = imageResolver;
     }
 
     private static final CacheControl CACHE_PRIVATE = CacheControl.noCache();
@@ -231,7 +237,7 @@ public class CrowdsourcingController {
 
     // on path /export
     @RequestMapping(value = "/export", method = RequestMethod.GET, produces = { "application/rdf+xml" })
-    public void handleUserContributionsExport(HttpServletRequest request, HttpServletResponse response) throws IOException {
+    public void handleUserContributionsExport(HttpServletRequest request, HttpServletResponse response) throws IOException, ImageResolverException {
 
         ensureAuthenticated();
 
@@ -241,7 +247,7 @@ public class CrowdsourcingController {
 
         String baseUrl = String.format("%s://%s:%d/", request.getScheme(), request.getServerName(), request.getServerPort());
 
-        RDFReader rr = new RDFReader(auth.getName(), baseUrl);
+        RDFReader rr = new RDFReader(auth.getName(), baseUrl, imageResolver);
 
         for (DocumentAnnotations docAnnotations : userAnnotations.getDocumentAnnotations()) {
             String documentId = docAnnotations.getDocumentId();
@@ -262,7 +268,7 @@ public class CrowdsourcingController {
     // on path /export
     @RequestMapping(value = "/export/{docId}", method = RequestMethod.GET, produces = { "application/rdf+xml" })
     public void handleUserDocumentContributionsExport(@PathVariable("docId") String documentId, HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
+            HttpServletResponse response) throws IOException, ImageResolverException {
 
         ensureAuthenticated();
 
@@ -272,7 +278,7 @@ public class CrowdsourcingController {
 
         String baseUrl = String.format("%s://%s:%d/", request.getScheme(), request.getServerName(), request.getServerPort());
 
-        RDFReader rr = new RDFReader(auth.getName(), baseUrl);
+        RDFReader rr = new RDFReader(auth.getName(), baseUrl, imageResolver);
 
         for (Annotation annotation : docAnnotations.getAnnotations()) {
             rr.addElement(annotation, documentId);
