@@ -1,4 +1,4 @@
-package ulcambridge.foundations.viewer.crowdsourcing;
+package ulcambridge.foundations.viewer.crowdsourcing.config;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
