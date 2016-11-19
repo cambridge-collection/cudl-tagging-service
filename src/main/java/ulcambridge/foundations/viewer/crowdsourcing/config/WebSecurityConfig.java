@@ -18,6 +18,7 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtChallengeGenerators;
@@ -27,6 +28,7 @@ import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtAuthenticationFilter;
 import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtAuthenticationProvider;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.DelegatingAuthenticationFailureHandler;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.Http401AuthenticationFailureHandler;
+import ulcambridge.foundations.viewer.crowdsourcing.springsec.NoopAuthenticationSuccessHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -52,11 +54,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
     public JwtAuthenticationFilter jwtAuthenticationFilter(
         AuthenticationManager authenticationManager,
         @Qualifier("jwtAuthFailureHandler") AuthenticationFailureHandler
-            authenticationFailureHandler) {
+            authenticationFailureHandler,
+        AuthenticationSuccessHandler authenticationSuccessHandler) {
 
         JwtAuthenticationFilter f =
             new JwtAuthenticationFilter(authenticationManager);
         f.setAuthenticationFailureHandler(authenticationFailureHandler);
+        f.setAuthenticationSuccessHandler(authenticationSuccessHandler);
+        f.setContinueChainBeforeSuccessfulAuthentication(true);
 
         return f;
     }
@@ -86,6 +91,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
             )),
             new SimpleUrlAuthenticationFailureHandler()
         );
+    }
+
+    @Bean
+    public AuthenticationSuccessHandler jwtAuthenticationSuccessHandler() {
+        return new NoopAuthenticationSuccessHandler();
     }
 
     @Override
