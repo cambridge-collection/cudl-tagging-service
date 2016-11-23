@@ -8,6 +8,8 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.CudlJsonHttpRequestIma
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
 
+import java.net.URI;
+
 @Configuration
 public class CrowdsourcingConfig {
 
@@ -24,13 +26,12 @@ public class CrowdsourcingConfig {
 
     @Bean
     public ImageResolver imageResolver(
-        @Value("${cudl.imageserver-url-template}")
-            String imageserverUrlTemplate,
-        @Value("${cudl.json-url-template}") String jsonUrlTemplate,
+        @Value("${cudl.imageserver-base-url}") URI imageserverBaseUrl,
+        @Value("${cudl.json-base-url}") URI jsonBaseUrl,
         RestTemplate restTemplate) {
 
         return new CudlJsonHttpRequestImageResolver(
-            imageserverUrlTemplate, jsonUrlTemplate, restTemplate);
+            imageserverBaseUrl, jsonBaseUrl, restTemplate);
     }
 
     @Bean
