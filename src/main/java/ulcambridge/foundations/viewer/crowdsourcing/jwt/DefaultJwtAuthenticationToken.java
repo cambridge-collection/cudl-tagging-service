@@ -1,16 +1,21 @@
 package ulcambridge.foundations.viewer.crowdsourcing.jwt;
 
+import com.google.common.collect.ImmutableList;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.Assert;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * A Spring security authentication token implementation backed by a normal JWT,
@@ -40,9 +45,39 @@ public class DefaultJwtAuthenticationToken<P>
      * authorities.
      */
     public static final Function<Jws<Claims>, Collection<GrantedAuthority>>
-        NO_AUTHORITIES_EXTRACTOR = x -> Collections.emptyList();
+        ROLE_USER_AUTHORITY_EXTRACTOR =
+        fixedAuthorityList(authoritiesFromRoles("user"));
 
-    private final Function<Jws<Claims>, P> principleExtractor;
+    public static final Function<Jws<Claims>, Collection<GrantedAuthority>>
+    fixedAuthorityList(GrantedAuthority... grantedAuthorities) {
+
+        return fixedAuthorityList(Arrays.asList(grantedAuthorities));
+    }
+
+    public static final Function<Jws<Claims>, Collection<GrantedAuthority>>
+    fixedAuthorityList(Collection<GrantedAuthority> grantedAuthorities) {
+
+        List<GrantedAuthority> authorities = ImmutableList.copyOf(
+            grantedAuthorities);
+
+        return jws -> authorities;
+    }
+
+    public static final Collection<GrantedAuthority> authoritiesFromRoles(
+        String... roleNames) {
+
+        return authoritiesFromRoles(Arrays.asList(roleNames));
+    }
+
+    public static final Collection<GrantedAuthority> authoritiesFromRoles(
+        Collection<String> roleNames) {
+
+        return roleNames.stream()
+            .map(SimpleGrantedAuthority::new)
+            .collect(Collectors.toList());
+    }
+
+        private final Function<Jws<Claims>, P> principleExtractor;
     private final Function<Jws<Claims>, Collection<GrantedAuthority>>
         authoritiesExtractor;
 
@@ -99,7 +134,7 @@ public class DefaultJwtAuthenticationToken<P>
         String jwt, Instant received) {
 
         return new DefaultJwtAuthenticationToken<>(jwt, received,
-            SUBJECT_STRING_PRINCIPLE_EXTRACTOR, NO_AUTHORITIES_EXTRACTOR);
+            SUBJECT_STRING_PRINCIPLE_EXTRACTOR, ROLE_USER_AUTHORITY_EXTRACTOR);
     }
 
     /**
