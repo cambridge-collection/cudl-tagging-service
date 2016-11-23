@@ -1,5 +1,6 @@
 package ulcambridge.foundations.viewer.crowdsourcing.dao;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -24,6 +25,8 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
 import ulcambridge.foundations.viewer.utils.Utils;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -42,12 +45,14 @@ import java.util.UUID;
 public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
     private final JdbcTemplate jdbcTemplate;
+    private final ObjectMapper objectMapper;
 
     @Autowired
     public CrowdsourcingDBDao(JdbcTemplate jdbcTemplate) {
         Assert.notNull(jdbcTemplate);
 
         this.jdbcTemplate = jdbcTemplate;
+        this.objectMapper = new ObjectMapper();
     }
 
     @Override
@@ -311,28 +316,12 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
     @Override
     public UserAnnotations getAnnotationsByUser(String userId) {
-        // query
-        List<JsonObject> userAnnotationList = sqlGetAnnotationsByUser(userId);
+        List<DocumentAnnotations> docAnnotations = queryJsonList(
+            DocumentAnnotations.class,
+            "SELECT annos FROM \"DocumentAnnotations\" WHERE \"oid\" = ?",
+            userId);
 
-        JsonObject json = new JsonObject();
-        JsonArray userAnnotationJArray = new JsonArray();
-        int total = 0;
-
-        for (JsonObject userAnnotations : userAnnotationList) {
-            if (userAnnotations.has("oid")) {
-                userAnnotations.remove("oid");
-                if (userAnnotations.has("annotations")) {
-                    total += userAnnotations.getAsJsonArray("annotations").size();
-                }
-                userAnnotationJArray.add(userAnnotations);
-            }
-        }
-
-        json.addProperty("oid", userId);
-        json.addProperty("total", total);
-        json.add("annotations", userAnnotationJArray);
-
-        return new JSONConverter().toUserAnnotations(json);
+        return new UserAnnotations(userId, docAnnotations);
     }
 
     @Override
@@ -569,4 +558,44 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         });
     }
 
+    @FunctionalInterface
+    public interface ColumnExtractor<T> {
+        T extract(ResultSet rs) throws SQLException;
+    }
+
+    public static ColumnExtractor<String> stringColumn(String name) {
+        return rs -> rs.getString(name);
+    }
+
+    public static ColumnExtractor<String> stringColumn(int position) {
+        return rs -> rs.getString(position);
+    }
+
+    private static <T> RowMapper<T> mapColumnJsonAs(
+        Class<T> type, ColumnExtractor<String> columnExtractor,
+        ObjectMapper mapper) {
+
+        return (rs, rowNum) -> {
+            try {
+                return mapper.readValue(columnExtractor.extract(rs), type);
+            }
+            catch(IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
+    }
+
+    private <T> List<T> queryJsonList(
+        Class<T> type, ColumnExtractor<String> jsonColumn, String query,
+        Object...params) {
+
+        return this.jdbcTemplate.query(query, params,
+            mapColumnJsonAs(type, jsonColumn, this.objectMapper));
+    }
+
+    private <T> List<T> queryJsonList(
+        Class<T> type, String query, Object...params) {
+
+        return queryJsonList(type, stringColumn(1), query, params);
+    }
 }

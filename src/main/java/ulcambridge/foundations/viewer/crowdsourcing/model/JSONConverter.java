@@ -29,12 +29,6 @@ public class JSONConverter {
         return (Position) gson.fromJson(json, Position.class);
     }
 
-    public Coordinates toCoordinates(JsonObject json) {
-        if (gson == null)
-            return null;
-        return (Coordinates) gson.fromJson(json, Coordinates.class);
-    }
-
     public Tag toTag(JsonObject json) {
         if (gson == null)
             return null;
@@ -53,28 +47,10 @@ public class JSONConverter {
         return (DocumentAnnotations) gson.fromJson(json, DocumentAnnotations.class);
     }
 
-    public UserAnnotations toUserAnnotations(JsonObject json) {
-        if (gson == null)
-            return null;
-        return (UserAnnotations) gson.fromJson(json, UserAnnotations.class);
-    }
-
     public JsonObject toJsonAnnotation(Annotation annotation) {
         if (gson == null)
             return null;
         return (JsonObject) new JsonParser().parse(gson.toJson(annotation));
-    }
-
-    public JsonObject toJsonPosition(Position position) {
-        if (gson == null)
-            return null;
-        return (JsonObject) new JsonParser().parse(gson.toJson(position));
-    }
-
-    public JsonObject toJsonCoordinates(Coordinates coordinates) {
-        if (gson == null)
-            return null;
-        return (JsonObject) new JsonParser().parse(gson.toJson(coordinates));
     }
 
     public JsonObject toJsonTag(Tag tag) {
@@ -94,11 +70,4 @@ public class JSONConverter {
             return null;
         return (JsonObject) new JsonParser().parse(gson.toJson(da));
     }
-
-    public JsonObject toJsonUserAnnotations(UserAnnotations ua) {
-        if (gson == null)
-            return null;
-        return (JsonObject) new JsonParser().parse(gson.toJson(ua));
-    }
-
 }

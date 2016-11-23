@@ -1,7 +1,11 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import org.springframework.util.Assert;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -11,40 +15,36 @@ import java.util.List;
  */
 public class UserAnnotations {
 
-    @JsonProperty("oid")
-    private String userId;
+    private final String userId;
+    private final List<DocumentAnnotations> documentAnnotations;
 
-    @JsonProperty("total")
-    private int total;
+    @JsonCreator
+    public UserAnnotations(
+        @JsonProperty("oid") String userId,
+        @JsonProperty("annotations")
+            Collection<DocumentAnnotations> documentAnnotations) {
 
-    @JsonProperty("annotations")
-    private List<DocumentAnnotations> documentAnnotations;
+        Assert.hasText(userId);
+        Assert.notNull(documentAnnotations);
 
-    public UserAnnotations() {
+        this.userId = userId;
+        this.documentAnnotations = ImmutableList.copyOf(documentAnnotations);
     }
 
+    @JsonProperty("oid")
     public String getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
+    @JsonProperty(value = "total", access = JsonProperty.Access.READ_ONLY)
     public int getTotal() {
-        return total;
+        return getDocumentAnnotations().stream()
+            .mapToInt(da -> da.getAnnotations().size())
+            .sum();
     }
 
-    public void setTotal(int total) {
-        this.total = total;
-    }
-
+    @JsonProperty("annotations")
     public List<DocumentAnnotations> getDocumentAnnotations() {
         return documentAnnotations;
     }
-
-    public void setDocumentAnnotations(List<DocumentAnnotations> documentAnnotations) {
-        this.documentAnnotations = documentAnnotations;
-    }
-
 }
