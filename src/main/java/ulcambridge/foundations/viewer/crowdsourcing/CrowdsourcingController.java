@@ -54,6 +54,7 @@ import java.util.concurrent.TimeUnit;
 public class CrowdsourcingController {
 
     private static final Logger logger = LoggerFactory.getLogger(CrowdsourcingController.class);
+    private static final String MEDIA_RDF = "application/rdf+xml";
 
     private final CrowdsourcingDao dataSource;
     private final TermCombiner termCombiner;
@@ -206,7 +207,7 @@ public class CrowdsourcingController {
     }
 
     // on path /export
-    @RequestMapping(value = "/export", method = RequestMethod.GET, produces = { "application/rdf+xml" })
+    @RequestMapping(value = "/export", method = RequestMethod.GET, produces = MEDIA_RDF)
     @PreAuthorize("hasRole('ROLE_USER')")
     public void handleUserContributionsExport(HttpServletRequest request, HttpServletResponse response) throws IOException, ImageResolverException {
 
@@ -227,6 +228,7 @@ public class CrowdsourcingController {
 
         response.setHeader("Content-Disposition", "attachment; filename=" + ("USER" + "_" + Utils.getCurrentDateTime().toString()) + ".rdf");
         response.setHeader("Cache-Control", CACHE_PRIVATE.getHeaderValue());
+        response.setHeader("Content-Type", MEDIA_RDF);
 
         OutputStream os = response.getOutputStream();
         rr.getModel().write(os, RDFFormat.RDFXML.getLang().getName());
@@ -235,7 +237,7 @@ public class CrowdsourcingController {
     }
 
     // on path /export
-    @RequestMapping(value = "/export/{docId}", method = RequestMethod.GET, produces = { "application/rdf+xml" })
+    @RequestMapping(value = "/export/{docId}", method = RequestMethod.GET, produces = MEDIA_RDF)
     @PreAuthorize("hasRole('ROLE_USER')")
     public void handleUserDocumentContributionsExport(@PathVariable("docId") String documentId, HttpServletRequest request,
             HttpServletResponse response) throws IOException, ImageResolverException {
