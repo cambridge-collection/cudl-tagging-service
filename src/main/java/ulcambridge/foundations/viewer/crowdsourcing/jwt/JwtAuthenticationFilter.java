@@ -6,7 +6,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter;
+import ulcambridge.foundations.viewer.crowdsourcing.springsec.NoopAuthenticationSuccessHandler;
 
+import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -44,6 +46,12 @@ public class JwtAuthenticationFilter
 
         this.jwtRequestStrategy = jwtRequestStrategy;
         this.tokenCreator = tokenCreator;
+
+        // The default success handler is designed for stateful login. It
+        // redirects the user after authentication, which is not helpful for a
+        // stateless, per-request auth mechanism.
+        this.setAuthenticationSuccessHandler(
+            new NoopAuthenticationSuccessHandler());
     }
 
     @Override
@@ -66,5 +74,18 @@ public class JwtAuthenticationFilter
 
         return getAuthenticationManager()
             .authenticate(token);
+    }
+
+    @Override
+    protected void successfulAuthentication(
+        HttpServletRequest request, HttpServletResponse response,
+        FilterChain chain, Authentication authResult)
+        throws IOException, ServletException {
+
+        super.successfulAuthentication(request, response, chain, authResult);
+
+        // Stateless authentication is assumed, so the chain processing needs to
+        // continue to allow the real request to be processed.
+        chain.doFilter(request, response);
     }
 }
