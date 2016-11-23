@@ -8,8 +8,8 @@ import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,9 +38,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.SQLException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -56,13 +53,9 @@ import java.util.concurrent.TimeUnit;
 @RequestMapping("/crowdsourcing")
 public class CrowdsourcingController {
 
-    private static final Set<String> USER_ROLES = Collections.unmodifiableSet(
-            new HashSet<String>(Arrays.asList("ROLE_USER", "ROLE_ADMIN")));
-
     private static final Logger logger = LoggerFactory.getLogger(CrowdsourcingController.class);
 
     private final CrowdsourcingDao dataSource;
-    private final Set<String> allowedRoles = USER_ROLES;
     private final TermCombiner termCombiner;
     private final ImageResolver imageResolver;
 
@@ -86,25 +79,6 @@ public class CrowdsourcingController {
                 .cachePublic()
                 .sMaxAge(30, TimeUnit.MINUTES);
 
-    private boolean isUserAuthenticated() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        if(auth == null)
-            return false;
-
-        for(GrantedAuthority a : auth.getAuthorities()) {
-            if(this.allowedRoles.contains(a.getAuthority()))
-                return true;
-        }
-
-        return false;
-    }
-
-    private void ensureAuthenticated() {
-        if(!isUserAuthenticated())
-            throw new PermissionDeniedException();
-    }
-
     private static class PermissionDeniedException extends RuntimeException { }
 
     @ExceptionHandler(PermissionDeniedException.class)
@@ -127,19 +101,18 @@ public class CrowdsourcingController {
         return resp;
     }
 
+    @PreAuthorize("hasRole('ROLE_USER')")
     private String getCurrentUserId() {
-        ensureAuthenticated();
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
     }
 
     // on path /anno/get
     @RequestMapping(value = "/anno/get/{docId}/{docPage}", method = RequestMethod.GET, produces = { "application/json" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<JsonResponse> handleAnnotationsFetch(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
                                                HttpServletRequest req)
             throws IOException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         DocumentAnnotations docAnnotations = dataSource.getAnnotations(auth.getName(), documentId, documentPageNo);
@@ -152,10 +125,9 @@ public class CrowdsourcingController {
     // on path /anno/update
     @RequestMapping(value = "/anno/update/{docId}/{docPage}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
             "application/json" }, produces = { "application/json" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public JsonResponse handleAnnotationAddOrUpdate(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
             @RequestBody Annotation annotation) throws SQLException, IOException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         int result = dataSource.addAnnotation(auth.getName(), documentId, annotation);
@@ -210,9 +182,8 @@ public class CrowdsourcingController {
 
     // on path /rmvtag/get
     @RequestMapping(value = "/rmvtag/get/{docId}", method = RequestMethod.GET, produces = { "application/json" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public ResponseEntity<JsonResponse> handleRemovedTagsFetch(@PathVariable("docId") String documentId) throws IOException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         DocumentTags docTags = dataSource.getRemovedTags(auth.getName(), documentId);
@@ -225,10 +196,9 @@ public class CrowdsourcingController {
     // on path /rmvtag/update
     @RequestMapping(value = "/rmvtag/update/{docId}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
             "application/json" }, produces = { "application/json" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public JsonResponse handleRemovedTagAddOrUpdate(@PathVariable("docId") String documentId, @RequestBody Tag removedTag)
             throws SQLException, IOException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         int result = dataSource.addRemovedTag(auth.getName(), documentId, removedTag);
@@ -237,9 +207,8 @@ public class CrowdsourcingController {
 
     // on path /export
     @RequestMapping(value = "/export", method = RequestMethod.GET, produces = { "application/rdf+xml" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public void handleUserContributionsExport(HttpServletRequest request, HttpServletResponse response) throws IOException, ImageResolverException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
@@ -267,10 +236,9 @@ public class CrowdsourcingController {
 
     // on path /export
     @RequestMapping(value = "/export/{docId}", method = RequestMethod.GET, produces = { "application/rdf+xml" })
+    @PreAuthorize("hasRole('ROLE_USER')")
     public void handleUserDocumentContributionsExport(@PathVariable("docId") String documentId, HttpServletRequest request,
             HttpServletResponse response) throws IOException, ImageResolverException {
-
-        ensureAuthenticated();
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
 
