@@ -103,18 +103,20 @@ public class CrowdsourcingController {
     }
 
     // on path /anno/get
-    @RequestMapping(value = "/anno/get/{docId}/{docPage}", method = RequestMethod.GET, produces = { "application/json" })
+    @RequestMapping(value = "/anno/{docId}/{docPage}",
+                    method = RequestMethod.GET,
+                    produces = { "application/json" })
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonResponse> handleAnnotationsFetch(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
-                                               HttpServletRequest req)
-            throws IOException {
+    public ResponseEntity<DocumentAnnotations> handleAnnotationsFetch(
+        @PathVariable("docId") String documentId,
+        @PathVariable("docPage") int documentPageNo) throws IOException {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        DocumentAnnotations docAnnotations = dataSource.getAnnotations(auth.getName(), documentId, documentPageNo);
+        DocumentAnnotations docAnnotations = dataSource.getAnnotations(
+            getCurrentUserId(), documentId, documentPageNo);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .cacheControl(CACHE_PRIVATE)
-                .body(new JsonResponse("200", "Annotations fetched", docAnnotations));
+                .body(docAnnotations);
     }
 
     // on path /anno/update
