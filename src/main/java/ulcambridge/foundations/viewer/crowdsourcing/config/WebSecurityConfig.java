@@ -93,6 +93,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
     protected void configure(HttpSecurity http) throws Exception {
 
         http
+            // CSRF protection is not required because we use an Authorization
+            // header rather than a cookie for authentication. 3rd party sites
+            // can't obtain an auth token, so they can't make cross site
+            // requests.
+            .csrf()
+                .disable()
             .authorizeRequests()
                 // Don't require authentication for OPTIONS requests. Doing so
                 // breaks CORS preflight requests.
