@@ -24,7 +24,6 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
 import ulcambridge.foundations.viewer.utils.Utils;
 
-import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -45,10 +44,10 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     private final JdbcTemplate jdbcTemplate;
 
     @Autowired
-    public CrowdsourcingDBDao(DataSource dataSource) {
-        Assert.notNull(dataSource);
+    public CrowdsourcingDBDao(JdbcTemplate jdbcTemplate) {
+        Assert.notNull(jdbcTemplate);
 
-        this.jdbcTemplate = new JdbcTemplate(dataSource);
+        this.jdbcTemplate = jdbcTemplate;
     }
 
     @Override
