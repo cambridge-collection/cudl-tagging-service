@@ -10,6 +10,7 @@ import org.springframework.beans.factory.BeanFactoryAware;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -93,6 +94,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
 
         http
             .authorizeRequests()
+                // Don't require authentication for OPTIONS requests. Doing so
+                // breaks CORS preflight requests.
+                .antMatchers(HttpMethod.OPTIONS, "/**")
+                    .permitAll()
                 .antMatchers("/crowdsourcing/**").authenticated()
                 .anyRequest().permitAll()
                 .and()
