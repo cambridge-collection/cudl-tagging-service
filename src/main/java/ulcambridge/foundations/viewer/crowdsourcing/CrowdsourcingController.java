@@ -97,13 +97,6 @@ public class CrowdsourcingController {
                 .build();
     }
 
-    private JsonResponse redirect() {
-        JsonResponse resp = new JsonResponse("401", "User unauthenticated");
-        resp.setRedirect(true);
-        resp.setRedirectURL("/auth/login");
-        return resp;
-    }
-
     @PreAuthorize("hasRole('ROLE_USER')")
     private String getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
