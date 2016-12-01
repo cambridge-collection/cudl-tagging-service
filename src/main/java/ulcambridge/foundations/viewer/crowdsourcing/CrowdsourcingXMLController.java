@@ -10,6 +10,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +28,6 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.JsonResponse;
 import ulcambridge.foundations.viewer.crowdsourcing.model.SourceReader;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
-import ulcambridge.foundations.viewer.model.Properties;
 
 /**
  * Handles requests for generating combined xmls for xtf search.
@@ -43,17 +43,26 @@ public class CrowdsourcingXMLController {
 
     private final CrowdsourcingDao dataSource;
 
-    private final String APIKEY = Properties.getString("api.cs.key");
+    @Value("${api.cs.key}")
+    private String apiKey;
 
-    private final String PATH_META = Properties.getString("path.meta");
-    private final String PATH_FRAG = Properties.getString("path.fragment");
+    @Value("${path.meta}")
+    private String pathMeta;
+    @Value("${path.fragment}")
+    private String pathFrag;
 
-    private final String PATH_ANNO = Properties.getString("path.anno");
-    private final String PATH_TAG = Properties.getString("path.tag");
-    private final String PATH_ANNOTAG = Properties.getString("path.annotag");
-    private final String PATH_ANNOMETA = Properties.getString("path.annometa");
-    private final String PATH_TAGMETA = Properties.getString("path.tagmeta");
-    private final String PATH_ANNOTAGMETA = Properties.getString("path.annotagmeta");
+    @Value("${path.anno}")
+    private String pathAnno;
+    @Value("${path.tag}")
+    private String pathTag;
+    @Value("${path.annotag}")
+    private String pathAnnoTag;
+    @Value("${path.annometa}")
+    private String pathAnnoMeta;
+    @Value("${path.tagmeta}")
+    private String pathTagMeta;
+    @Value("${path.annotagmeta}")
+    private String pathAnnoTagMeta;
 
     @Autowired
     public CrowdsourcingXMLController(CrowdsourcingDao crowdsourcingDao) {
@@ -66,12 +75,12 @@ public class CrowdsourcingXMLController {
     @RequestMapping(value = "/updatefrags/{key}", method = RequestMethod.GET)
     public JsonResponse handleUpdateFragments(@PathVariable("key") String key) {
 
-        if (!key.equals(APIKEY))
+        if (!key.equals(apiKey))
             return new JsonResponse("400", "API key missing");
 
         // TODO validate filenames, skip invalid filenames
         //
-        SourceReader sr = new SourceReader(PATH_META, PATH_FRAG);
+        SourceReader sr = new SourceReader(pathMeta, pathFrag);
         List<File> fragmentFiles = sr.listFragments();
 
         if (fragmentFiles == null) {
@@ -113,7 +122,7 @@ public class CrowdsourcingXMLController {
     @RequestMapping(value = "/{type}/{key}", method = RequestMethod.GET)
     public JsonResponse handleGenerateXMLsForXTFSearch(@PathVariable("type") String type, @PathVariable("key") String key) {
 
-        if (!key.equals(APIKEY))
+        if (!key.equals(apiKey))
             return new JsonResponse("400", "API key missing");
 
         // annotation xml
@@ -133,11 +142,11 @@ public class CrowdsourcingXMLController {
             generateXML_AnnoTag();
             return new JsonResponse("200", "Combined XMLs (annotations and tags+removed tags) generated");
         } else if (type.equals("annometa") || type.equals("tagmeta") || type.equals("annotagmeta")) {
-                SourceReader sr = new SourceReader(PATH_META, PATH_FRAG);
+                SourceReader sr = new SourceReader(pathMeta, pathFrag);
                 List<File> metadataFiles = sr.listMetadata();
 
                 if (metadataFiles == null) {
-                    logger.error("Metadata not found, " + PATH_META);
+                    logger.error("Metadata not found, " + pathMeta);
                     return new JsonResponse("400", "Metadata not found");
                 }
 
@@ -167,7 +176,7 @@ public class CrowdsourcingXMLController {
             generateXML_Tag();
             generateXML_AnnoTag();
 
-            SourceReader sr = new SourceReader(PATH_META, PATH_FRAG);
+            SourceReader sr = new SourceReader(pathMeta, pathFrag);
             List<File> metadataFiles = sr.listMetadata();
 
             if (metadataFiles == null) {
@@ -195,7 +204,7 @@ public class CrowdsourcingXMLController {
 
             DocumentTerms docTerms = new DocumentTerms(docAnnotation.getDocumentId(), docAnnotation.getTotal(), docAnnotation.getTerms());
 
-            String path = (new File(PATH_ANNO, documentId + ".xml")).getPath();
+            String path = (new File(pathAnno, documentId + ".xml")).getPath();
             new FileReader().save(path, docTerms.toJAXBString(docTerms));
 
             counter++;
@@ -215,7 +224,7 @@ public class CrowdsourcingXMLController {
             // combine tags with removed tags
             DocumentTerms docTerms = new TermCombiner().combine_Tag_RemovedTag(docTags, docRemovedTags);
 
-            String path = (new File(PATH_TAG, documentId + ".xml")).getPath();
+            String path = (new File(pathTag, documentId + ".xml")).getPath();
             new FileReader().save(path, docTerms.toJAXBString(docTerms));
 
             counter++;
@@ -241,7 +250,7 @@ public class CrowdsourcingXMLController {
             // combine annotations, tags and removed tags
             DocumentTerms docTerms = new TermCombiner().combine_Anno_Tag_RemovedTag(docAnnotations, docTags, docRemovedTags);
 
-            String path = (new File(PATH_ANNOTAG, documentId + ".xml")).getPath();
+            String path = (new File(pathAnnoTag, documentId + ".xml")).getPath();
             new FileReader().save(path, docTerms.toJAXBString(docTerms));
 
             counter++;
@@ -261,7 +270,7 @@ public class CrowdsourcingXMLController {
             DocumentTerms docTerms = new TermCombiner().updateToMetaLevel(docAnnotations);
 
             String xml = sr.combineXMLs(new FileReader().read(metadataFile.getPath(), Charsets.UTF_8), docTerms.toJAXBString(docTerms));
-            String path = (new File(PATH_ANNOMETA, metadataId + ".xml")).getPath();
+            String path = (new File(pathAnnoMeta, metadataId + ".xml")).getPath();
             new FileReader().save(path, xml);
 
             counter++;
@@ -282,7 +291,7 @@ public class CrowdsourcingXMLController {
             DocumentTerms docTerms = new TermCombiner().updateToMetaLevel(docTags, docRemovedTags);
 
             String xml = sr.combineXMLs(new FileReader().read(metadataFile.getPath(), Charsets.UTF_8), docTerms.toJAXBString(docTerms));
-            String path = (new File(PATH_TAGMETA, metadataId + ".xml")).getPath();
+            String path = (new File(pathTagMeta, metadataId + ".xml")).getPath();
             new FileReader().save(path, xml);
 
             counter++;
@@ -304,7 +313,7 @@ public class CrowdsourcingXMLController {
             DocumentTerms docTerms = new TermCombiner().updateToMetaLevel(docAnnotations, docTags, docRemovedTags);
 
             String xml = sr.combineXMLs(new FileReader().read(metadataFile.getPath(), Charsets.UTF_8), docTerms.toJAXBString(docTerms));
-            String path = (new File(PATH_ANNOTAGMETA, metadataId + ".xml")).getPath();
+            String path = (new File(pathAnnoTagMeta, metadataId + ".xml")).getPath();
             new FileReader().save(path, xml);
 
             counter++;
