@@ -97,7 +97,6 @@ public class CrowdsourcingController {
                 .build();
     }
 
-    @PreAuthorize("hasRole('ROLE_USER')")
     private String getCurrentUserId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth.getName();
@@ -105,7 +104,7 @@ public class CrowdsourcingController {
 
     // on path /anno/get
     @RequestMapping(value = "/anno/get/{docId}/{docPage}", method = RequestMethod.GET, produces = { "application/json" })
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<JsonResponse> handleAnnotationsFetch(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
                                                HttpServletRequest req)
             throws IOException {
@@ -121,7 +120,7 @@ public class CrowdsourcingController {
     // on path /anno/update
     @RequestMapping(value = "/anno/update/{docId}/{docPage}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
             "application/json" }, produces = { "application/json" })
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public JsonResponse handleAnnotationAddOrUpdate(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
             @RequestBody Annotation annotation) throws SQLException, IOException {
 
@@ -132,6 +131,7 @@ public class CrowdsourcingController {
 
     @RequestMapping(value = "/anno/remove/{docId}/{uuid}",
                     method = RequestMethod.DELETE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> handleAnnotationRemove(
             @PathVariable("docId") String documentId,
             @PathVariable("uuid") UUID annotationId)
@@ -148,6 +148,7 @@ public class CrowdsourcingController {
      * IDs from a document.
      */
     @RequestMapping(value = "/anno/remove/{docId}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Set<UUID>> removeAnnotations(
             @PathVariable("docId") String documentId,
             @RequestParam("uuid") List<UUID> annotationIds)
@@ -178,7 +179,7 @@ public class CrowdsourcingController {
 
     // on path /rmvtag/get
     @RequestMapping(value = "/rmvtag/get/{docId}", method = RequestMethod.GET, produces = { "application/json" })
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<JsonResponse> handleRemovedTagsFetch(@PathVariable("docId") String documentId) throws IOException {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -192,7 +193,7 @@ public class CrowdsourcingController {
     // on path /rmvtag/update
     @RequestMapping(value = "/rmvtag/update/{docId}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
             "application/json" }, produces = { "application/json" })
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public JsonResponse handleRemovedTagAddOrUpdate(@PathVariable("docId") String documentId, @RequestBody Tag removedTag)
             throws SQLException, IOException {
 
@@ -203,7 +204,7 @@ public class CrowdsourcingController {
 
     // on path /export
     @RequestMapping(value = "/export", method = RequestMethod.GET, produces = MEDIA_RDF)
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public void handleUserContributionsExport(HttpServletRequest request, HttpServletResponse response) throws IOException, ImageResolverException {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -233,7 +234,7 @@ public class CrowdsourcingController {
 
     // on path /export
     @RequestMapping(value = "/export/{docId}", method = RequestMethod.GET, produces = MEDIA_RDF)
-    @PreAuthorize("hasRole('ROLE_USER')")
+    @PreAuthorize("isAuthenticated()")
     public void handleUserDocumentContributionsExport(@PathVariable("docId") String documentId, HttpServletRequest request,
             HttpServletResponse response) throws IOException, ImageResolverException {
 
