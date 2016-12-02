@@ -176,8 +176,11 @@ public class CrowdsourcingController {
     }
 
     // on path /tag/get
-    @RequestMapping(value = "/tag/get/{docId}", method = RequestMethod.GET, produces = { "application/json" })
-    public ResponseEntity<JsonResponse> handleTagsFetch(@PathVariable("docId") String documentId) throws IOException {
+    @RequestMapping(value = "/tag/{docId}",
+                    method = RequestMethod.GET,
+                    produces = { "application/json" })
+    public ResponseEntity<DocumentTerms> handleTagsFetch(
+        @PathVariable("docId") String documentId) throws IOException {
 
         // combine tags with annotations and removed tags
         DocumentTags docTags = dataSource.getTagsByDocument(documentId);
@@ -189,7 +192,7 @@ public class CrowdsourcingController {
 
         return ResponseEntity.ok()
                 .cacheControl(CACHE_PUBLIC_INFREQUENTLY_CHANGING)
-                .body(new JsonResponse("200", "Tags fetched", docARTTerms));
+                .body(docARTTerms);
     }
 
     // on path /rmvtag/get
