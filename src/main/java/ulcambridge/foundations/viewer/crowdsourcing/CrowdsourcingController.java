@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponentsBuilder;
 import ulcambridge.foundations.viewer.crowdsourcing.dao.CrowdsourcingDao;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentAnnotations;
@@ -38,6 +39,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.net.URI;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
@@ -119,16 +121,24 @@ public class CrowdsourcingController {
                 .body(docAnnotations);
     }
 
-    // on path /anno/update
-    @RequestMapping(value = "/anno/update/{docId}/{docPage}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
-            "application/json" }, produces = { "application/json" })
+    @RequestMapping(
+        value = "/anno/{docId}",
+        method = RequestMethod.POST,
+        headers = { "Content-type=application/json" },
+        consumes = { "application/json" }, produces = { "application/json" })
     @PreAuthorize("isAuthenticated()")
-    public JsonResponse handleAnnotationAddOrUpdate(@PathVariable("docId") String documentId, @PathVariable("docPage") int documentPageNo,
-            @RequestBody Annotation annotation) throws SQLException, IOException {
+    public ResponseEntity<Annotation> handleAnnotationAdd(
+        @PathVariable("docId") String documentId,
+        @RequestBody Annotation annotation) throws SQLException, IOException {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        int result = dataSource.addAnnotation(auth.getName(), documentId, annotation);
-        return new JsonResponse("200", "Annotation added/updated");
+        URI annotationLocation = UriComponentsBuilder
+            .fromUriString("./{docId}/{docPage}")
+            .buildAndExpand(documentId, annotation.getPage()).encode().toUri();
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+            .location(annotationLocation)
+            .body(dataSource.addAnnotation(
+                getCurrentUserId(), documentId, annotation));
     }
 
     @RequestMapping(value = "/anno/remove/{docId}/{uuid}",

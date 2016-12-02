@@ -33,7 +33,7 @@ public interface CrowdsourcingDao {
 
     public DocumentTags getRemovedTagsByDocument(String documentId);
 
-    public int addAnnotation(String userId, String documentId, Annotation annotation) throws SQLException;
+    public Annotation addAnnotation(String userId, String documentId, Annotation annotation) throws SQLException;
 
     public int addTag(String documentId, DocumentTags documentTags) throws SQLException;
 

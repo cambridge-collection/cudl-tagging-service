@@ -105,7 +105,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     }
 
     @Override
-    public int addAnnotation(
+    public Annotation addAnnotation(
             String userId, String documentId, Annotation annotation)
             throws SQLException {
 
@@ -126,7 +126,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         // query
         int rowsAffected = sqlUpsertAnnotations(userId, documentId, newJson);
 
-        return 1;
+        return annotation;
     }
 
     @Override
