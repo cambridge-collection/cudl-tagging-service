@@ -196,16 +196,19 @@ public class CrowdsourcingController {
     }
 
     // on path /rmvtag/get
-    @RequestMapping(value = "/rmvtag/get/{docId}", method = RequestMethod.GET, produces = { "application/json" })
+    @RequestMapping(value = "/rmvtag/{docId}",
+                    method = RequestMethod.GET,
+                    produces = { "application/json" })
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<JsonResponse> handleRemovedTagsFetch(@PathVariable("docId") String documentId) throws IOException {
+    public ResponseEntity<DocumentTags> handleRemovedTagsFetch(
+        @PathVariable("docId") String documentId) throws IOException {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        DocumentTags docTags = dataSource.getRemovedTags(auth.getName(), documentId);
+        DocumentTags docTags = dataSource.getRemovedTags(
+            getCurrentUserId(), documentId);
 
         return ResponseEntity.ok()
                 .cacheControl(CACHE_PRIVATE)
-                .body(new JsonResponse("200", "Removed tags fetched", docTags));
+                .body(docTags);
     }
 
     // on path /rmvtag/update
