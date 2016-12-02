@@ -141,7 +141,7 @@ public class CrowdsourcingController {
                 getCurrentUserId(), documentId, annotation));
     }
 
-    @RequestMapping(value = "/anno/remove/{docId}/{uuid}",
+    @RequestMapping(value = "/anno/{docId}/{uuid}",
                     method = RequestMethod.DELETE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> handleAnnotationRemove(
@@ -149,17 +149,20 @@ public class CrowdsourcingController {
             @PathVariable("uuid") UUID annotationId)
             throws SQLException, IOException {
 
-        boolean removed = dataSource.removeAnnotation(getCurrentUserId(), documentId, annotationId);
-        return ResponseEntity.status(removed ? HttpStatus.NO_CONTENT
-                                             : HttpStatus.NOT_FOUND)
-                .build();
+        boolean removed = dataSource.removeAnnotation(
+            getCurrentUserId(), documentId, annotationId);
+
+        return (removed ? ResponseEntity.noContent()
+                        : ResponseEntity.notFound()).build();
     }
 
     /**
      * Delete the annotations created by the logged-in user with the specified
      * IDs from a document.
      */
-    @RequestMapping(value = "/anno/remove/{docId}", method = RequestMethod.POST, consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+    @RequestMapping(value = "/anno/{docId}",
+                    method = RequestMethod.DELETE,
+                    consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Set<UUID>> removeAnnotations(
             @PathVariable("docId") String documentId,
