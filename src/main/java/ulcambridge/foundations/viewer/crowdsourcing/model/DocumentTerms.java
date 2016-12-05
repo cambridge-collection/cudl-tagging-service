@@ -11,6 +11,7 @@ import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.annotations.SerializedName;
 
 /**
  *
@@ -21,9 +22,11 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 public class DocumentTerms {
 
     @JsonProperty("oid")
+    @SerializedName("oid")
     private String userId;
 
     @JsonProperty("docId")
+    @SerializedName("docId")
     private String documentId;
 
     @JsonProperty("total")

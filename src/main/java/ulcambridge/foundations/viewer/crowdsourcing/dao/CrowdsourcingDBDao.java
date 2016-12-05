@@ -1,5 +1,6 @@
 package ulcambridge.foundations.viewer.crowdsourcing.dao;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -35,8 +36,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * @author Lei
@@ -89,19 +92,25 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         return new JSONConverter().toDocumentTags(dt);
     }
 
+    private static final String GET_REMOVED_TAGS_QUERY =
+        "SELECT removedtags FROM \"DocumentRemovedTags\" " +
+        "WHERE \"oid\" = ? AND \"docId\" = ?";
+
     @Override
     public DocumentTags getRemovedTags(String userId, String documentId) {
-        // query
-        JsonObject json = sqlGetRemovedTags(userId, documentId);
 
-        if (!json.has("docId")) {
-            json.addProperty("oid", userId);
-            json.addProperty("docId", documentId);
-            json.addProperty("total", 0);
-            json.add("tags", new JsonArray());
-        }
-
-        return new JSONConverter().toDocumentTags(json);
+        return queryJsonOptional(DocumentTags.class, GET_REMOVED_TAGS_QUERY, userId,
+                         documentId)
+            .orElseGet(() -> {
+                // FIXME: Make model classes immutable
+                // FIXME: Get rid of nullable fields on model classes
+                // FIXME: Get rid of no-arg constructors on model classes
+                DocumentTags dt = new DocumentTags();
+                dt.setUserId(userId);
+                dt.setDocumentId(documentId);
+                dt.setTags(new ArrayList<>());
+                return dt;
+            });
     }
 
     @Override
@@ -227,23 +236,52 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     }
 
     @Override
-    public int addRemovedTag(String userId, String documentId, Tag removedTag) throws SQLException {
+    public Tag getRemovedTag(String userId, String documentId, String tagName) {
+        return queryJson(Tag.class,
+            "SELECT tag FROM \n" +
+            "  (SELECT json_array_elements(removedTags::json->'tags') as tag\n" +
+            "   FROM \"DocumentRemovedTags\"\n" +
+            "   WHERE \"docId\" = ?\n" +
+            "         AND oid = ?\n" +
+            "  ) AS tags\n" +
+            "WHERE tag->>'name' = ?;",
+            documentId, userId, tagName);
+    }
+
+    @Override
+    public UpsertResult<DocumentTags> addRemovedTag(String userId, String documentId, Tag removedTag) throws SQLException {
         DocumentTags dt = getRemovedTags(userId, documentId);
+
         List<Tag> removedTags = dt.getTags();
 
-        if (removedTags.contains(removedTag)) {
+        boolean exists = removedTags.contains(removedTag);
+        if(exists)
             removedTags.remove(removedTag);
-        } else {
-            removedTags.add(removedTag);
-        }
+
+        removedTags.add(removedTag);
         dt.setTotal(removedTags.size());
 
-        JsonObject newJson = new JSONConverter().toJsonDocumentTags(dt);
+        sqlUpsertRemovedTags(dt);
 
-        // query
-        int rowsAffected = sqlUpsertRemovedTags(userId, documentId, newJson);
+        return CrowdsourcingDao.upsertResult(dt, !exists);
+    }
 
-        return 1;
+    public boolean removeRemovedTag(
+        String userId, String documentId, String tagName) throws SQLException {
+
+        DocumentTags dt = getRemovedTags(userId, documentId);
+        List<Tag> tags = dt.getTags().stream()
+            .filter(t -> !t.getName().equals(tagName))
+            .collect(Collectors.toList());
+
+        boolean removed = dt.getTags().size() > tags.size();
+
+        if(!removed)
+            return false;
+
+        dt.setTags(tags);
+        dt.setTotal(tags.size()); // -_-
+        return sqlUpsertRemovedTags(dt) > 0;
     }
 
     @Override
@@ -510,16 +548,29 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         return jdbcTemplate.update(query, new Object[] { json, documentId, documentId, json, documentId });
     }
 
-    private int sqlUpsertRemovedTags(String userId, String documentId, JsonObject newJson) throws SQLException {
+    private int sqlUpsertRemovedTags(DocumentTags docTags) throws SQLException {
         String query = "UPDATE \"DocumentRemovedTags\" SET \"removedtags\" = ? WHERE \"oid\" = ? AND \"docId\" = ?; "
                 + "INSERT INTO \"DocumentRemovedTags\" (\"oid\", \"docId\", \"removedtags\") " + "SELECT ?, ?, ? "
                 + "WHERE NOT EXISTS (SELECT * FROM \"DocumentRemovedTags\" WHERE \"oid\" = ? AND \"docId\" = ?);";
 
         PGobject json = new PGobject();
         json.setType("json");
-        json.setValue(newJson.toString());
 
-        return jdbcTemplate.update(query, new Object[] { json, userId, documentId, userId, documentId, json, userId, documentId });
+        try {
+            json.setValue(this.objectMapper.writeValueAsString(docTags));
+        }
+        catch(JsonProcessingException e) {
+            throw new RuntimeException(
+                "Failed to convert DocumentTags to JSON", e);
+        }
+
+        String uid = docTags.getUserId();
+        Assert.notNull(uid);
+        String did = docTags.getDocumentId();
+        Assert.notNull(did);
+
+        return jdbcTemplate.update(
+            query, json, uid, did, uid, did, json, uid, did);
     }
 
     private List<JsonObject> sqlGetAnnotationsByDocument(final String documentId) {
@@ -585,17 +636,69 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         };
     }
 
+    @FunctionalInterface
+    private interface QueryFunc<RowT, ResultT> {
+        ResultT query(String query, Object[] args, RowMapper<RowT> rm);
+    }
+
+    private <RowT, ResultT> ResultT internalQueryJson(
+        QueryFunc<RowT, ResultT> queryMethod, Class<RowT> type,
+        ColumnExtractor<String> jsonColumn, String query, Object...params) {
+
+        return queryMethod.query(query, params,
+            mapColumnJsonAs(type, jsonColumn, this.objectMapper));
+    }
+
+    private static final ColumnExtractor<String> DEFAULT_JSON_COLUMN =
+        stringColumn(1);
+
     private <T> List<T> queryJsonList(
         Class<T> type, ColumnExtractor<String> jsonColumn, String query,
         Object...params) {
 
-        return this.jdbcTemplate.query(query, params,
-            mapColumnJsonAs(type, jsonColumn, this.objectMapper));
+        return internalQueryJson(
+            this.jdbcTemplate::query, type, jsonColumn, query, params);
     }
 
     private <T> List<T> queryJsonList(
         Class<T> type, String query, Object...params) {
 
-        return queryJsonList(type, stringColumn(1), query, params);
+        return queryJsonList(type, DEFAULT_JSON_COLUMN, query, params);
+    }
+
+    private <T> T queryJson(
+        Class<T> type, ColumnExtractor<String> jsonColumn, String query,
+        Object...params) {
+
+        return internalQueryJson(
+            this.jdbcTemplate::queryForObject, type, jsonColumn, query, params);
+    }
+
+    private <T> T queryJson(
+        Class<T> type, String query, Object...params) {
+
+        return queryJson(type, DEFAULT_JSON_COLUMN, query, params);
+    }
+
+    private <T> Optional<T> queryJsonOptional(
+        Class<T> type, ColumnExtractor<String> jsonColumn, String query,
+        Object...params) {
+
+        try {
+            return Optional.of(internalQueryJson(
+                this.jdbcTemplate::queryForObject, type, jsonColumn, query,
+                params));
+
+        }
+        catch(IncorrectResultSizeDataAccessException e) {
+            return Optional.empty();
+        }
+    }
+
+    private <T> Optional<T> queryJsonOptional(
+        Class<T> type, String query,
+        Object...params) {
+
+        return queryJsonOptional(type, DEFAULT_JSON_COLUMN, query, params);
     }
 }

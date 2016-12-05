@@ -4,6 +4,7 @@ import org.apache.jena.riot.RDFFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,13 +23,13 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.util.UriComponentsBuilder;
 import ulcambridge.foundations.viewer.crowdsourcing.dao.CrowdsourcingDao;
+import ulcambridge.foundations.viewer.crowdsourcing.dao.CrowdsourcingDao.UpsertResult;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentAnnotations;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTags;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTerms;
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolverException;
-import ulcambridge.foundations.viewer.crowdsourcing.model.JsonResponse;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
@@ -211,16 +212,54 @@ public class CrowdsourcingController {
                 .body(docTags);
     }
 
-    // on path /rmvtag/update
-    @RequestMapping(value = "/rmvtag/update/{docId}", method = RequestMethod.POST, headers = { "Content-type=application/json" }, consumes = {
-            "application/json" }, produces = { "application/json" })
+    @RequestMapping(value = "/rmvtag/{docId}/{tag}",
+        method = RequestMethod.GET,
+        produces = { "application/json" })
     @PreAuthorize("isAuthenticated()")
-    public JsonResponse handleRemovedTagAddOrUpdate(@PathVariable("docId") String documentId, @RequestBody Tag removedTag)
-            throws SQLException, IOException {
+    public Tag handleRemovedTagsFetch(
+        @PathVariable("docId") String documentId,
+        @PathVariable("tag") String tag) throws IOException {
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        int result = dataSource.addRemovedTag(auth.getName(), documentId, removedTag);
-        return new JsonResponse("200", "Removed tag added/updated");
+        return dataSource.getRemovedTag(getCurrentUserId(), documentId, tag);
+    }
+
+    @RequestMapping(value = "/rmvtag/{docId}",
+        method = RequestMethod.POST,
+        headers = { "Content-type=application/json" },
+        consumes = { "application/json" }, produces = { "application/json" })
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<DocumentTags> handleRemovedTagAddOrUpdate(
+        @PathVariable("docId") String documentId, @RequestBody Tag removedTag)
+        throws SQLException, IOException {
+
+        UpsertResult<DocumentTags> dt = dataSource.addRemovedTag(
+            getCurrentUserId(), documentId, removedTag);
+
+        // 201 if new, 200 if updated
+        return ResponseEntity
+            .status(dt.wasCreated() ? HttpStatus.CREATED : HttpStatus.OK)
+            .location(
+                UriComponentsBuilder.fromUriString("./{docId}/{tag}")
+                    .buildAndExpand(documentId, removedTag.getName())
+                    .encode().toUri())
+            .body(dt.getValue());
+    }
+
+    @RequestMapping(value = "/rmvtag/{docId}/{tag}",
+                    method = RequestMethod.DELETE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> handleRemovedTagDelete(
+        @PathVariable("docId") String documentId,
+        @PathVariable("tag") String tagName) throws SQLException {
+
+        boolean deleted = dataSource.removeRemovedTag(
+            getCurrentUserId(), documentId, tagName);
+
+        if(deleted)
+            return ResponseEntity.noContent().build();
+
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body("Tag does not exist: " + tagName);
     }
 
     // on path /export
@@ -279,5 +318,13 @@ public class CrowdsourcingController {
         rr.getModel().write(os, RDFFormat.RDFXML.getLang().getName());
         response.flushBuffer();
         os.close();
+    }
+
+    @ExceptionHandler
+    public void handleObjectNotFound(
+        HttpServletResponse resp, EmptyResultDataAccessException e)
+        throws IOException {
+
+        resp.sendError(HttpStatus.NOT_FOUND.value(), e.getMessage());
     }
 }

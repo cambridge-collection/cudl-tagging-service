@@ -3,6 +3,7 @@ package ulcambridge.foundations.viewer.crowdsourcing.dao;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,6 +30,8 @@ public interface CrowdsourcingDao {
 
     public DocumentTags getTagsByDocument(String documentId);
 
+    Tag getRemovedTag(String userId, String documentId, String tagName);
+
     public DocumentTags getRemovedTags(String userId, String documentId);
 
     public DocumentTags getRemovedTagsByDocument(String documentId);
@@ -37,7 +40,9 @@ public interface CrowdsourcingDao {
 
     public int addTag(String documentId, DocumentTags documentTags) throws SQLException;
 
-    public int addRemovedTag(String userId, String documentId, Tag removedTag) throws SQLException;
+    UpsertResult<DocumentTags> addRemovedTag(String userId, String documentId, Tag removedTag) throws SQLException;
+
+    boolean removeRemovedTag(String userId, String documentId, String tagName) throws SQLException;
 
     public boolean removeAnnotation(String userId, String documentId, UUID annotationUuid) throws SQLException;
 
@@ -56,4 +61,23 @@ public interface CrowdsourcingDao {
 
     public List<String> getTaggedDocuments();
 
+    interface UpsertResult<T> {
+        T getValue();
+        boolean wasCreated();
+        default boolean wasUpdated() { return !this.wasCreated(); }
+    }
+
+    static <T> UpsertResult<T> upsertResult(T value, boolean created) {
+        return new UpsertResult<T>() {
+            @Override
+            public T getValue() {
+                return value;
+            }
+
+            @Override
+            public boolean wasCreated() {
+                return created;
+            }
+        };
+    }
 }
