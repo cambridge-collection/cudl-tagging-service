@@ -51,11 +51,14 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     private final ObjectMapper objectMapper;
 
     @Autowired
-    public CrowdsourcingDBDao(JdbcTemplate jdbcTemplate) {
+    public CrowdsourcingDBDao(
+        JdbcTemplate jdbcTemplate, ObjectMapper objectMapper) {
+
         Assert.notNull(jdbcTemplate);
+        Assert.notNull(objectMapper);
 
         this.jdbcTemplate = jdbcTemplate;
-        this.objectMapper = new ObjectMapper();
+        this.objectMapper = objectMapper;
     }
 
     @Override
