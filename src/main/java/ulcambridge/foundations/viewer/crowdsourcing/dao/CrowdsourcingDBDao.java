@@ -15,6 +15,8 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.ResultSetExtractor;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.support.rowset.ResultSetWrappingSqlRowSet;
+import org.springframework.jdbc.support.rowset.SqlRowSet;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
@@ -36,10 +38,15 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * @author Lei
@@ -703,5 +710,101 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         Object...params) {
 
         return queryJsonOptional(type, DEFAULT_JSON_COLUMN, query, params);
+    }
+
+    /**
+     * {@link Stream} access to rows from a query.
+     *
+     * <p>The stream is passed to the provided stream handling function.
+     * Evaluation of the stream must occur before the streamHandler function
+     * returns, as the underlying JDBC resources will be closed after the
+     * streamHandler returns.
+     *
+     * <p>The stream contains references to rows via SqlRowSet. References to
+     * the row sets must not be retained after the first traversal, as the rows
+     * are not cached. If they are then calling methods on them will fail.
+     *
+     * @param streamHandler A function which will be called with the stream of
+     *                      results, and should process the stream to produce a
+     *                      value.
+     * @param query The SQL query to execute
+     * @param params The parameters to be substituted into the query
+     * @return A stream yielding an SqlRowSet for each row the the evaluation of
+     *         the query produces.
+     */
+    private <T> T queryStream(
+        Function<Stream<SqlRowSet>, T> streamHandler, String query,
+        Object...params) {
+
+        return this.jdbcTemplate.query(query, resultSet -> {
+
+            SqlRowSet rowSet = new ResultSetWrappingSqlRowSet(resultSet);
+
+            Stream<SqlRowSet> stream =  StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(
+                    new SqlRowSetIterator(rowSet),
+                    Spliterator.IMMUTABLE | Spliterator.NONNULL),
+                // Don't make the stream over the row set iterator parallel.
+                // Each row set returned by the iterator has to be accessed in
+                // order, as the row set doesn't cache rows by default.
+                false);
+
+            return streamHandler.apply(stream);
+        }, params);
+    }
+
+    /**
+     * Exposes an {@link SqlRowSet} as an Iterator which returns its row set for
+     * each row that exists in the row set.
+     */
+    private static class SqlRowSetIterator implements Iterator<SqlRowSet> {
+
+        private final SqlRowSet rs;
+        private SingleRowSqlRowSetView rowSetView;
+        private State state;
+
+        private enum State { POSSIBLY_AT_END, AT_NEXT, AT_END }
+
+        public SqlRowSetIterator(SqlRowSet rs) {
+            Assert.notNull(rs);
+
+            this.rs = rs;
+            this.state = State.POSSIBLY_AT_END;
+        }
+
+        @Override
+        public boolean hasNext() {
+            if(state == State.POSSIBLY_AT_END) {
+                if(rowSetView != null)
+                    rowSetView.invalidate();
+
+                if(rs.next()) {
+                    rowSetView = new SingleRowSqlRowSetView(rs);
+                    state = State.AT_NEXT;
+                }
+                else
+                    state = State.AT_END;
+            }
+
+            return state == State.AT_NEXT;
+        }
+
+        @Override
+        public SqlRowSet next() {
+            // Note that hasNext() returns true if it can advance the state to
+            // AT_NEXT.
+            if(state == State.POSSIBLY_AT_END && hasNext() ||
+               state == State.AT_NEXT) {
+
+                assert state == State.AT_NEXT;
+                assert rowSetView != null;
+                assert rowSetView.isValid();
+                state = State.POSSIBLY_AT_END;
+                return rowSetView;
+            }
+
+            assert state == State.AT_END;
+            throw new NoSuchElementException();
+        }
     }
 }
