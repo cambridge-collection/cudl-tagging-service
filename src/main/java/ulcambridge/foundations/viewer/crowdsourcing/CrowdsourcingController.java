@@ -105,6 +105,12 @@ public class CrowdsourcingController {
         return auth.getName();
     }
 
+    class IllegalAnnotationValueException extends RuntimeException {
+        public IllegalAnnotationValueException(String message) {
+            super(message);
+        }
+    }
+
     // on path /anno/get
     @RequestMapping(value = "/anno/{docId}/{docPage}",
                     method = RequestMethod.GET,
@@ -131,6 +137,10 @@ public class CrowdsourcingController {
     public ResponseEntity<Annotation> handleAnnotationAdd(
         @PathVariable("docId") String documentId,
         @RequestBody Annotation annotation) throws SQLException, IOException {
+
+        if(annotation.getRaw() != 1 || annotation.getValue() != 1)
+            throw new IllegalAnnotationValueException(
+                "Attempted to create annotation with abnormal weight");
 
         URI annotationLocation = UriComponentsBuilder
             .fromUriString("./{docId}/{docPage}")
@@ -235,6 +245,10 @@ public class CrowdsourcingController {
         UpsertResult<DocumentTags> dt = dataSource.addRemovedTag(
             getCurrentUserId(), documentId, removedTag);
 
+        if(removedTag.getRaw() != -1 || removedTag.getValue() != -1)
+            throw new IllegalAnnotationValueException(
+                "Attempted to create annotation with abnormal weight");
+
         // 201 if new, 200 if updated
         return ResponseEntity
             .status(dt.wasCreated() ? HttpStatus.CREATED : HttpStatus.OK)
@@ -326,5 +340,13 @@ public class CrowdsourcingController {
         throws IOException {
 
         resp.sendError(HttpStatus.NOT_FOUND.value(), e.getMessage());
+    }
+
+    @ExceptionHandler
+    public void handleCreateAnnotationWithIllegalWeight(
+        HttpServletResponse resp, IllegalAnnotationValueException e)
+        throws IOException {
+
+        resp.sendError(HttpStatus.FORBIDDEN.value(), e.getMessage());
     }
 }
