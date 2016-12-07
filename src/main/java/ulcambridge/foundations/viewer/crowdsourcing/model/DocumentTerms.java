@@ -1,7 +1,7 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
-import java.io.ByteArrayOutputStream;
-import java.util.List;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.gson.annotations.SerializedName;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -9,9 +9,10 @@ import javax.xml.bind.Marshaller;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
-
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.google.gson.annotations.SerializedName;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 /**
  *
@@ -36,6 +37,10 @@ public class DocumentTerms {
     private List<Term> terms;
 
     public DocumentTerms() {
+    }
+
+    public DocumentTerms(String documentId, Collection<Term> terms) {
+        this(documentId, terms.size(), new ArrayList<>(terms));
     }
 
     public DocumentTerms(String documentId, int total, List<Term> terms) {

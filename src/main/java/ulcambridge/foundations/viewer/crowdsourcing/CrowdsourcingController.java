@@ -4,6 +4,7 @@ import org.apache.jena.riot.RDFFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -31,7 +32,9 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTerms;
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolverException;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
+import ulcambridge.foundations.viewer.crowdsourcing.model.Term;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
+import ulcambridge.foundations.viewer.crowdsourcing.model.TermType;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
 import ulcambridge.foundations.viewer.rdf.RDFReader;
 import ulcambridge.foundations.viewer.utils.Utils;
@@ -42,6 +45,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -62,20 +66,23 @@ public class CrowdsourcingController {
     private static final String MEDIA_RDF = "application/rdf+xml";
 
     private final CrowdsourcingDao dataSource;
-    private final TermCombiner termCombiner;
+    private final TermCombiner.Factory<TermType, Term, Term, Collection<Term>>
+        termCombinerFactory;
     private final ImageResolver imageResolver;
 
     @Autowired
     public CrowdsourcingController(
-        CrowdsourcingDao crowdsourcingDao, TermCombiner termCombiner,
+        CrowdsourcingDao crowdsourcingDao,
+        @Qualifier("weightedTermCombiner") TermCombiner.Factory<
+            TermType, Term, Term, Collection<Term>> termCombinerFactory,
         ImageResolver imageResolver) {
 
         Assert.notNull(crowdsourcingDao);
-        Assert.notNull(termCombiner);
+        Assert.notNull(termCombinerFactory);
         Assert.notNull(imageResolver);
 
         this.dataSource = crowdsourcingDao;
-        this.termCombiner = termCombiner;
+        this.termCombinerFactory = termCombinerFactory;
         this.imageResolver = imageResolver;
     }
 
@@ -195,15 +202,22 @@ public class CrowdsourcingController {
 
         // combine tags with annotations and removed tags
         DocumentTags docTags = dataSource.getTagsByDocument(documentId);
-        DocumentTags docRemovedTags = dataSource.getRemovedTagsByDocument(documentId);
-        DocumentAnnotations docAnnotations = dataSource.getAnnotationsByDocument(documentId);
+        Collection<Term> docRemovedTags =
+            dataSource.getMergedRemovedTagsByDocument(documentId);
+        Collection<Term> docAnnotations =
+            dataSource.getMergedAnnotationsByDocument(documentId);
 
-        DocumentTerms docARTTerms = termCombiner.combine_Anno_Tag_RemovedTag(
-            docAnnotations, docTags, docRemovedTags);
+        Collection<Term> terms = termCombinerFactory.newInstance()
+            .addTerms(TermType.TAG, docTags.getTags()::stream)
+            .addTerms(TermType.ANNOTATION, docAnnotations::stream)
+            .addTerms(TermType.REMOVED_TAG, docRemovedTags::stream)
+            .getCombinedTerms();
+
+        DocumentTerms docTerms = new DocumentTerms(documentId, terms);
 
         return ResponseEntity.ok()
                 .cacheControl(CACHE_PUBLIC_INFREQUENTLY_CHANGING)
-                .body(docARTTerms);
+                .body(docTerms);
     }
 
     // on path /rmvtag/get

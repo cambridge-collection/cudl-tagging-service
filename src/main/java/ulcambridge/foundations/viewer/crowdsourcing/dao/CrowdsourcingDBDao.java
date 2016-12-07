@@ -25,6 +25,8 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTags;
 import ulcambridge.foundations.viewer.crowdsourcing.model.GsonFactory;
 import ulcambridge.foundations.viewer.crowdsourcing.model.JSONConverter;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
+import ulcambridge.foundations.viewer.crowdsourcing.model.Term;
+import ulcambridge.foundations.viewer.crowdsourcing.model.Terms;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
 import ulcambridge.foundations.viewer.utils.Utils;
 
@@ -38,12 +40,14 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
 import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -294,6 +298,25 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         return sqlUpsertRemovedTags(dt) > 0;
     }
 
+    private static final String GET_DOCUMENT_ANNOTATIONS_QUERY =
+        "SELECT annotation\n" +
+        "FROM\n" +
+        "  \"DocumentAnnotations\",\n" +
+        "  json_array_elements(annos->'annotations') as annotation\n" +
+        "WHERE \"docId\" = ?";
+
+    @Override
+    public Collection<Term> getMergedAnnotationsByDocument(String documentId) {
+        return this.queryStream(rows -> {
+            Map<String, Term> merged = rows.map(row -> row.getString(1))
+                .map(jsonConverter(Annotation.class))
+                .collect(Terms.mergeTerms(true));
+
+            return merged.values();
+
+        }, GET_DOCUMENT_ANNOTATIONS_QUERY, documentId);
+    }
+
     @Override
     public DocumentAnnotations getAnnotationsByDocument(String documentId) {
         // query
@@ -326,6 +349,37 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         json.add("annotations", distinctAnnos);
 
         return jc.toDocumentAnnotations(json);
+    }
+
+    private static final String GET_DOCUMENT_REMOVED_TAGS_QUERY =
+        "SELECT tag\n" +
+        "FROM\n" +
+        "  \"DocumentRemovedTags\",\n" +
+        "  json_array_elements(removedTags->'tags') as tag\n" +
+        "WHERE \"docId\" = ?\n";
+
+    @Override
+    public Collection<Term> getMergedRemovedTagsByDocument(String documentId) {
+
+        return this.queryStream(rows -> {
+            Map<String, Term> mergedTags = rows
+                .map(row -> row.getString(1))
+                .map(jsonConverter(Tag.class))
+                .collect(Terms.mergeTerms(true));
+
+            return mergedTags.values();
+        }, GET_DOCUMENT_REMOVED_TAGS_QUERY, documentId);
+    }
+
+    private <T> Function<String, T> jsonConverter(Class<T> cls) {
+        return s -> {
+            try {
+                return this.objectMapper.readValue(s, cls);
+            }
+            catch(IOException e) {
+                throw new UncheckedIOException(e);
+            }
+        };
     }
 
     @Override

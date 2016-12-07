@@ -1,17 +1,17 @@
 package ulcambridge.foundations.viewer.crowdsourcing.dao;
 
-import java.sql.SQLException;
-import java.util.Collection;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
-
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentAnnotations;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTags;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
+import ulcambridge.foundations.viewer.crowdsourcing.model.Term;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
+
+import java.sql.SQLException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
 /**
  *
@@ -25,6 +25,10 @@ public interface CrowdsourcingDao {
     public DocumentAnnotations getAnnotations(String userId, String documentId);
 
     public DocumentAnnotations getAnnotationsByDocument(String documentId);
+
+    Collection<Term> getMergedAnnotationsByDocument(String documentId);
+
+    Collection<Term> getMergedRemovedTagsByDocument(String documentId);
 
     public UserAnnotations getAnnotationsByUser(String userId);
 
