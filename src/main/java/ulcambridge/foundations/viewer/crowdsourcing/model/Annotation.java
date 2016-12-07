@@ -1,13 +1,15 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
-import java.util.Date;
-import java.util.UUID;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  *
@@ -16,28 +18,16 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
  */
 public class Annotation extends Term {
 
-    @JsonProperty("target")
     private String target;
-
-    @JsonProperty("type")
     private String type;
-
-    @JsonProperty("page")
     private int page;
-
-    @JsonProperty("uuid")
     private UUID uuid;
-
-    @JsonProperty("date")
-    @JsonSerialize(converter = JsonDateFormat.Serializer.class)
-    @JsonDeserialize(converter = JsonDateFormat.Deserializer.class)
     private Date date;
-
-    @JsonProperty("position")
     private Position position;
 
     private Annotation() {}
 
+    @JsonProperty("target")
     public String getTarget() {
         return target;
     }
@@ -46,6 +36,7 @@ public class Annotation extends Term {
         this.target = target;
     }
 
+    @JsonProperty("type")
     public String getType() {
         return type;
     }
@@ -54,6 +45,7 @@ public class Annotation extends Term {
         this.type = type;
     }
 
+    @JsonProperty("page")
     public int getPage() {
         return page;
     }
@@ -62,6 +54,7 @@ public class Annotation extends Term {
         this.page = page;
     }
 
+    @JsonProperty("uuid")
     public UUID getUuid() {
         return uuid;
     }
@@ -70,6 +63,8 @@ public class Annotation extends Term {
         this.uuid = uuid;
     }
 
+    @JsonProperty("date")
+    @JsonSerialize(converter = JsonDateFormat.Serializer.class)
     public Date getDate() {
         return date;
     }
@@ -78,12 +73,40 @@ public class Annotation extends Term {
         this.date = date;
     }
 
+    @JsonProperty("position")
     public Position getPosition() {
         return position;
     }
 
     public void setPosition(Position position) {
         this.position = position;
+    }
+
+    @JsonCreator
+    static Annotation createAnnotation(
+        @JsonProperty("name") String name, @JsonProperty("raw") int raw,
+        @JsonProperty("value") Optional<Double> value,
+        @JsonProperty("target") String target,
+        @JsonProperty("type") String type,
+        @JsonProperty("page") int page,
+        @JsonProperty("uuid") UUID uuid,
+        @JsonProperty("date")
+        @JsonDeserialize(converter = JsonDateFormat.Deserializer.class)
+            Date date,
+        @JsonProperty("position") Position position) {
+
+        Annotation a = new Annotation();
+        a.setName(name);
+        a.setRaw(raw);
+        a.setValue(value.orElse((double)raw));
+        a.setTarget(target);
+        a.setType(type);
+        a.setPage(page);
+        a.setUuid(uuid);
+        a.setDate(date);
+        a.setPosition(position);
+
+        return a;
     }
 
     @Override

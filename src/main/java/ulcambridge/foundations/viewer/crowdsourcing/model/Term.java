@@ -11,13 +11,8 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
  */
 public class Term {
 
-    @JsonProperty("name")
     private String name;
-
-    @JsonProperty("raw")
     private int raw;
-
-    @JsonProperty("value")
     private double value;
 
     public Term() {
@@ -29,6 +24,7 @@ public class Term {
         this.value = value;
     }
 
+    @JsonProperty("name")
     public String getName() {
         return name;
     }
@@ -37,6 +33,7 @@ public class Term {
         this.name = name;
     }
 
+    @JsonProperty("raw")
     public int getRaw() {
         return raw;
     }
@@ -45,6 +42,7 @@ public class Term {
         this.raw = raw;
     }
 
+    @JsonProperty("value")
     public double getValue() {
         return value;
     }
