@@ -1,9 +1,11 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import io.jsonwebtoken.lang.Assert;
+
+import java.util.List;
 
 /**
  *
@@ -12,29 +14,27 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class Position {
 
-    @JsonProperty("type")
-    private String type;
+    private final String type;
+    private final List<Point2D> coordinates;
 
-    @JsonProperty("coordinates")
-    private List<Point2D> coordinates = new ArrayList<Point2D>();
+    @JsonCreator
+    public Position(String type, Iterable<? extends Point2D> coordinates) {
+        Assert.notNull(type);
+        Assert.notNull(coordinates);
 
-    public Position() {
+        this.type = type;
+        this.coordinates = ImmutableList.copyOf(coordinates);
+        this.coordinates.forEach(Assert::notNull);
     }
 
+    @JsonProperty("type")
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
+    @JsonProperty("coordinates")
     public List<Point2D> getCoordinates() {
         return coordinates;
-    }
-
-    public void setCoordinates(List<Point2D> coordinates) {
-        this.coordinates = coordinates;
     }
 
     /**

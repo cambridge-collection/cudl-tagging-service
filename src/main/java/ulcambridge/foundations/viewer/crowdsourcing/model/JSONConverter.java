@@ -23,12 +23,6 @@ public class JSONConverter {
         return (Annotation) gson.fromJson(json, Annotation.class);
     }
 
-    public Position toPosition(JsonObject json) {
-        if (gson == null)
-            return null;
-        return (Position) gson.fromJson(json, Position.class);
-    }
-
     public Tag toTag(JsonObject json) {
         if (gson == null)
             return null;
