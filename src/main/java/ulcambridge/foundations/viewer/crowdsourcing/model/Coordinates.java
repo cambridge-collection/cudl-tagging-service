@@ -1,5 +1,6 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
@@ -9,29 +10,22 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  */
 public class Coordinates {
 
-    @JsonProperty("x")
-    private double x;
+    private final double x;
+    private final double y;
 
-    @JsonProperty("y")
-    private double y;
-
-    public Coordinates() {
+    @JsonCreator
+    public Coordinates(double x, double y) {
+        this.x = x;
+        this.y = y;
     }
 
+    @JsonProperty("x")
     public double getX() {
         return x;
     }
 
-    public void setX(double x) {
-        this.x = x;
-    }
-
+    @JsonProperty("y")
     public double getY() {
         return y;
     }
-
-    public void setY(double y) {
-        this.y = y;
-    }
-
 }
