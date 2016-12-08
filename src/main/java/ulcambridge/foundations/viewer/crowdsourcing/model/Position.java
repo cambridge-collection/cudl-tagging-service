@@ -16,7 +16,7 @@ public class Position {
     private String type;
 
     @JsonProperty("coordinates")
-    private List<Coordinates> coordinates = new ArrayList<Coordinates>();
+    private List<Point2D> coordinates = new ArrayList<Point2D>();
 
     public Position() {
     }
@@ -29,11 +29,11 @@ public class Position {
         this.type = type;
     }
 
-    public List<Coordinates> getCoordinates() {
+    public List<Point2D> getCoordinates() {
         return coordinates;
     }
 
-    public void setCoordinates(List<Coordinates> coordinates) {
+    public void setCoordinates(List<Point2D> coordinates) {
         this.coordinates = coordinates;
     }
 
