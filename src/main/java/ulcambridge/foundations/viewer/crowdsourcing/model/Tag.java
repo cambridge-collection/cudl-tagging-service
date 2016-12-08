@@ -12,7 +12,8 @@ import java.util.Optional;
  */
 public class Tag extends Term {
 
-    public Tag() {
+    public Tag(String name, int raw, double value) {
+        super(name, raw, value);
     }
 
     @JsonCreator
@@ -21,10 +22,6 @@ public class Tag extends Term {
         @JsonProperty("raw") int raw,
         @JsonProperty("value") Optional<Double> value) {
 
-        Tag t = new Tag();
-        t.setName(name);
-        t.setRaw(raw);
-        t.setValue(value.orElse((double)raw));
-        return t;
+        return new Tag(name, raw, value.orElse((double)raw));
     }
 }

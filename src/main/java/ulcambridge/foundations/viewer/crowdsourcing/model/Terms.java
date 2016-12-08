@@ -30,8 +30,10 @@ public final class Terms {
         /**
          * Do something to output. The input term is for reference only and must
          * not be modified.
+         *
+         * @return The updated term.
          */
-        void modifyOutputTerm(TIn input, TOut output);
+        TOut modifyOutputTerm(TIn input, TOut output);
     }
 
     /**
@@ -46,12 +48,11 @@ public final class Terms {
      */
     public static <TIn extends Term, TOut extends Term> Function<TIn, TOut>
         mapTerm(TermFactory<? super TIn, ? extends TOut> factory,
-                MappedTermModifier<? super TIn, ? super TOut> modifier) {
+                MappedTermModifier<? super TIn, TOut> modifier) {
 
         return t -> {
             TOut output = factory.createTerm(t);
-            modifier.modifyOutputTerm(t, output);
-            return output;
+            return modifier.modifyOutputTerm(t, output);
         };
     }
 
@@ -59,10 +60,11 @@ public final class Terms {
      * Create a function which scales the value of the specified term by the
      * specified amount.
      */
-    public static <TIn extends Term, TOut extends Term>
-        MappedTermModifier<TIn, TOut> weightValueBy(double amount) {
+    public static <TIn extends Term>
+        MappedTermModifier<TIn, Term> weightValueBy(double amount) {
 
-        return (tin, tout) -> tout.setValue(tin.getValue() * amount);
+        return (tin, tout) ->
+            new Term(tin.getName(), tin.getRaw(), tin.getValue() * amount);
     }
 
     /**
@@ -80,12 +82,11 @@ public final class Terms {
      * @param amount The scaling factor
      * @param factory A function to create the output term from the input
      * @param <TIn> The type of the input terms
-     * @param <TOut> The type of the output terms
      * @see #weightValueBy(double)
      */
-    public static <TIn extends Term, TOut extends Term> Function<TIn, TOut>
+    public static <TIn extends Term> Function<TIn, Term>
         weightTerms(double amount,
-                    TermFactory<? super TIn, ? extends TOut> factory) {
+                    TermFactory<? super TIn, Term> factory) {
 
         return mapTerm(factory, Terms.weightValueBy(amount));
     }
@@ -105,11 +106,8 @@ public final class Terms {
      * that both share the same name).
      */
     public static Term mergeTermsByAddingValues(Term t1, Term t2) {
-        Term t = new Term();
-        t.setName(t1.getName());
-        t.setRaw(t1.getRaw() + t2.getRaw());
-        t.setValue(t1.getValue() + t2.getValue());
-        return t;
+        return new Term(t1.getName(), t1.getRaw() + t2.getRaw(),
+                        t1.getValue() + t2.getValue());
     }
 
     /**

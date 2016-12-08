@@ -1,5 +1,6 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -11,13 +12,11 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
  */
 public class Term {
 
-    private String name;
-    private int raw;
-    private double value;
+    private final String name;
+    private final int raw;
+    private final double value;
 
-    public Term() {
-    }
-
+    @JsonCreator
     public Term(String name, int raw, double value) {
         this.name = name;
         this.raw = raw;
@@ -29,26 +28,14 @@ public class Term {
         return name;
     }
 
-    public void setName(String name) {
-        this.name = name;
-    }
-
     @JsonProperty("raw")
     public int getRaw() {
         return raw;
     }
 
-    public void setRaw(int raw) {
-        this.raw = raw;
-    }
-
     @JsonProperty("value")
     public double getValue() {
         return value;
-    }
-
-    public void setValue(double value) {
-        this.value = value;
     }
 
     @Override
