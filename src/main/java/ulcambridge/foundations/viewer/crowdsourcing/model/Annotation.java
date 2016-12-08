@@ -18,22 +18,30 @@ import java.util.UUID;
  */
 public class Annotation extends Term {
 
-    private String target;
-    private String type;
-    private int page;
-    private UUID uuid;
-    private Date date;
-    private Position position;
+    private final String target;
+    private final String type;
+    private final int page;
+    private final UUID uuid;
+    private final Date date;
+    private final Position position;
 
-    private Annotation() {}
+    public Annotation(String name, int raw, Double value, String target,
+                      String type, int page, UUID uuid, Date date,
+                      Position position) {
+
+        super(name, raw, value);
+
+        this.target = target;
+        this.type = type;
+        this.page = page;
+        this.uuid = uuid;
+        this.date = date;
+        this.position = position;
+    }
 
     @JsonProperty("target")
     public String getTarget() {
         return target;
-    }
-
-    public void setTarget(String target) {
-        this.target = target;
     }
 
     @JsonProperty("type")
@@ -41,26 +49,14 @@ public class Annotation extends Term {
         return type;
     }
 
-    public void setType(String type) {
-        this.type = type;
-    }
-
     @JsonProperty("page")
     public int getPage() {
         return page;
     }
 
-    public void setPage(int page) {
-        this.page = page;
-    }
-
     @JsonProperty("uuid")
     public UUID getUuid() {
         return uuid;
-    }
-
-    public void setUuid(UUID uuid) {
-        this.uuid = uuid;
     }
 
     @JsonProperty("date")
@@ -69,17 +65,9 @@ public class Annotation extends Term {
         return date;
     }
 
-    public void setDate(Date date) {
-        this.date = date;
-    }
-
     @JsonProperty("position")
     public Position getPosition() {
         return position;
-    }
-
-    public void setPosition(Position position) {
-        this.position = position;
     }
 
     @JsonCreator
@@ -95,18 +83,8 @@ public class Annotation extends Term {
             Date date,
         @JsonProperty("position") Position position) {
 
-        Annotation a = new Annotation();
-        a.setName(name);
-        a.setRaw(raw);
-        a.setValue(value.orElse((double)raw));
-        a.setTarget(target);
-        a.setType(type);
-        a.setPage(page);
-        a.setUuid(uuid);
-        a.setDate(date);
-        a.setPosition(position);
-
-        return a;
+        return new Annotation(name, raw, value.orElse((double)raw), target,
+                              type, page, uuid, date, position);
     }
 
     @Override

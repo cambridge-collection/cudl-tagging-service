@@ -138,9 +138,13 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         if (annotations.contains(annotation)) {
             annotations.remove(annotation);
         }
-        annotation.setDate(Utils.getCurrentDateTime());
-        annotation.setUuid(UUID.randomUUID());
-        annotations.add(annotation);
+
+        annotations.add(new Annotation(
+            annotation.getName(), annotation.getRaw(), annotation.getValue(),
+            annotation.getTarget(), annotation.getType(), annotation.getPage(),
+            UUID.randomUUID(), Utils.getCurrentDateTime(),
+            annotation.getPosition()));
+
         da.setAnnotations(annotations);
         da.setTotal(annotations.size());
 
