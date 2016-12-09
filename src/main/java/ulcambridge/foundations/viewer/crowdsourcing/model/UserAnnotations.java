@@ -39,7 +39,7 @@ public class UserAnnotations {
     @JsonProperty(value = "total", access = JsonProperty.Access.READ_ONLY)
     public int getTotal() {
         return getDocumentAnnotations().stream()
-            .mapToInt(da -> da.getAnnotations().size())
+            .mapToInt(da -> da.getTerms().size())
             .sum();
     }
 

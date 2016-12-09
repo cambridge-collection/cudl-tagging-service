@@ -5,15 +5,6 @@ import com.google.common.collect.ImmutableList;
 import com.google.gson.annotations.SerializedName;
 import org.springframework.util.Assert;
 
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Marshaller;
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-import java.io.ByteArrayOutputStream;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 /**
@@ -31,20 +22,13 @@ public class DocumentTerms {
     @SerializedName("docId")
     private final String documentId;
 
-    @JsonProperty("total")
-    private final int total;
+    private final ImmutableList<Term> terms;
 
-    @JsonProperty("terms")
-    private final List<Term> terms;
+    public DocumentTerms(String userId, String documentId,
+                         Iterable<? extends Term> terms) {
 
-    public DocumentTerms(String documentId, Collection<Term> terms) {
-        this(null, documentId, terms.size(), new ArrayList<>(terms));
-    }
-
-    public DocumentTerms(String userId, String documentId, int total, Collection<Term> terms) {
         this.userId = userId;
         this.documentId = documentId;
-        this.total = total;
         this.terms = ImmutableList.copyOf(terms);
         this.terms.forEach(Assert::notNull);
     }
@@ -57,11 +41,8 @@ public class DocumentTerms {
         return documentId;
     }
 
-    public int getTotal() {
-        return total;
-    }
-
-    public List<Term> getTerms() {
+    @JsonProperty("terms")
+    public List<? extends Term> getTerms() {
         return terms;
     }
 }

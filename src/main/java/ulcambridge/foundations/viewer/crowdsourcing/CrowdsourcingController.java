@@ -208,12 +208,12 @@ public class CrowdsourcingController {
             dataSource.getMergedAnnotationsByDocument(documentId);
 
         Collection<Term> terms = termCombinerFactory.newInstance()
-            .addTerms(TermType.TAG, docTags.getTags()::stream)
+            .addTerms(TermType.TAG, docTags.getTerms()::stream)
             .addTerms(TermType.ANNOTATION, docAnnotations::stream)
             .addTerms(TermType.REMOVED_TAG, docRemovedTags::stream)
             .getCombinedTerms();
 
-        DocumentTerms docTerms = new DocumentTerms(documentId, terms);
+        DocumentTerms docTerms = new DocumentTerms(null, documentId, terms);
 
         return ResponseEntity.ok()
                 .cacheControl(CACHE_PUBLIC_INFREQUENTLY_CHANGING)
@@ -305,7 +305,7 @@ public class CrowdsourcingController {
 
         for (DocumentAnnotations docAnnotations : userAnnotations.getDocumentAnnotations()) {
             String documentId = docAnnotations.getDocumentId();
-            for (Annotation annotation : docAnnotations.getAnnotations()) {
+            for (Annotation annotation : docAnnotations.getTerms()) {
                 rr.addElement(annotation, documentId);
             }
         }
@@ -334,7 +334,7 @@ public class CrowdsourcingController {
 
         RDFReader rr = new RDFReader(auth.getName(), baseUrl, imageResolver);
 
-        for (Annotation annotation : docAnnotations.getAnnotations()) {
+        for (Annotation annotation : docAnnotations.getTerms()) {
             rr.addElement(annotation, documentId);
         }
 

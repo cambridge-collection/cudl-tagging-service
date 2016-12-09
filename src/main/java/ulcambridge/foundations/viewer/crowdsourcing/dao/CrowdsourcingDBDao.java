@@ -120,7 +120,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             throws SQLException {
 
         DocumentAnnotations da = sqlGetAnnotations(userId, documentId);
-        List<Annotation> annotations = new ArrayList<Annotation>(da.getAnnotations());
+        List<Annotation> annotations = new ArrayList<>(da.getTerms());
 
         if (annotations.contains(annotation)) {
             annotations.remove(annotation);
@@ -259,11 +259,11 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
         DocumentTags dt = getRemovedTags(userId, documentId);
 
-        List<Tag> removedTags = dt.getTags().stream()
+        List<Tag> removedTags = dt.getTerms().stream()
             .filter(((Predicate<Object>)removedTag::equals).negate())
             .collect(Collectors.toList());
 
-        boolean created = removedTags.size() > dt.getTags().size();
+        boolean created = removedTags.size() > dt.getTerms().size();
         dt = new DocumentTags(dt.getUserId(), dt.getDocumentId(), removedTags);
 
         sqlUpsertRemovedTags(dt);
@@ -275,11 +275,11 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         String userId, String documentId, String tagName) throws SQLException {
 
         DocumentTags dt = getRemovedTags(userId, documentId);
-        List<Tag> tags = dt.getTags().stream()
+        List<Tag> tags = dt.getTerms().stream()
             .filter(t -> !t.getName().equals(tagName))
             .collect(Collectors.toList());
 
-        boolean removed = dt.getTags().size() > tags.size();
+        boolean removed = dt.getTerms().size() > tags.size();
 
         if(!removed)
             return false;
