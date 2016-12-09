@@ -1,7 +1,9 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.annotations.SerializedName;
+import org.springframework.util.Assert;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -19,94 +21,47 @@ import java.util.List;
  * @author Lei
  *
  */
-@XmlRootElement(name = "documentTerms")
 public class DocumentTerms {
 
     @JsonProperty("oid")
     @SerializedName("oid")
-    private String userId;
+    private final String userId;
 
     @JsonProperty("docId")
     @SerializedName("docId")
-    private String documentId;
+    private final String documentId;
 
     @JsonProperty("total")
-    private int total;
+    private final int total;
 
     @JsonProperty("terms")
-    private List<Term> terms;
-
-    public DocumentTerms() {
-    }
+    private final List<Term> terms;
 
     public DocumentTerms(String documentId, Collection<Term> terms) {
-        this(documentId, terms.size(), new ArrayList<>(terms));
+        this(null, documentId, terms.size(), new ArrayList<>(terms));
     }
 
-    public DocumentTerms(String documentId, int total, List<Term> terms) {
+    public DocumentTerms(String userId, String documentId, int total, Collection<Term> terms) {
+        this.userId = userId;
         this.documentId = documentId;
         this.total = total;
-        this.terms = terms;
+        this.terms = ImmutableList.copyOf(terms);
+        this.terms.forEach(Assert::notNull);
     }
 
     public String getUserId() {
         return userId;
     }
 
-    @XmlElement(name = "oid")
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
     public String getDocumentId() {
         return documentId;
-    }
-
-    @XmlElement(name = "docId")
-    public void setDocumentId(String documentId) {
-        this.documentId = documentId;
     }
 
     public int getTotal() {
         return total;
     }
 
-    @XmlElement(name = "total")
-    public void setTotal(int total) {
-        this.total = total;
-    }
-
     public List<Term> getTerms() {
         return terms;
     }
-
-    @XmlElementWrapper(name = "terms")
-    @XmlElement(name = "term")
-    public void setTerms(List<Term> terms) {
-        this.terms = terms;
-    }
-
-    /**
-     * it is actually convert the object into xml string
-     */
-    public String toJAXBString(DocumentTerms docTerms) {
-        String output = "";
-
-        try {
-            // create JAXB context and instantiate marshaller
-            JAXBContext context = JAXBContext.newInstance(DocumentTerms.class);
-            Marshaller m = context.createMarshaller();
-            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            m.marshal(docTerms, baos);
-
-            output = baos.toString();
-        } catch (JAXBException e) {
-            e.printStackTrace();
-        }
-
-        return output;
-    }
-
 }

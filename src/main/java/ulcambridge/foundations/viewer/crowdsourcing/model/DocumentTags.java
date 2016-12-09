@@ -1,46 +1,39 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+import org.springframework.util.Assert;
+
+import java.util.Collection;
+import java.util.List;
 
 /**
  *
  * @author Lei
  *
  */
-@XmlRootElement(name = "documentTags")
 @JsonIgnoreProperties({"terms"})
 public class DocumentTags extends DocumentTerms {
 
     @JsonProperty("tags")
-    private List<Tag> tags;
+    private final List<Tag> tags;
 
-    public DocumentTags() {
+    public DocumentTags(String userId, String documentId,
+                        Collection<Tag> tags) {
+        super(userId, documentId, tags.size(), ImmutableList.of());
+
+        this.tags = ImmutableList.copyOf(tags);
+        this.tags.forEach(Assert::notNull);
     }
 
     public List<Tag> getTags() {
         return tags;
     }
 
-    @XmlElementWrapper(name = "tags")
-    @XmlElement(name = "tag")
-    public void setTags(List<Tag> tags) {
-        this.tags = tags;
-    }
-
+    // This is safe as tags is immutable.
+    @SuppressWarnings("unchecked")
     public List<Term> getTerms() {
-        List<Term> terms = new ArrayList<Term>();
-        for (Tag tag : tags) {
-            terms.add(new Term(tag.getName(), tag.getRaw(), tag.getValue()));
-        }
-        return terms;
+        return (List)this.tags;
     }
-
 }

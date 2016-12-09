@@ -1,50 +1,43 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
-import java.util.ArrayList;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.google.common.collect.ImmutableList;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-
-import javax.xml.bind.annotation.XmlElement;
-import javax.xml.bind.annotation.XmlElementWrapper;
-import javax.xml.bind.annotation.XmlRootElement;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
  *
  * @author Lei
  *
  */
-@XmlRootElement(name = "documentAnnotations")
 @JsonIgnoreProperties({"terms"})
 public class DocumentAnnotations extends DocumentTerms {
 
     @JsonProperty("annotations")
     private final List<Annotation> annotations;
 
-    public DocumentAnnotations() {
-        annotations = new ArrayList<Annotation>();
+    public DocumentAnnotations(
+        String userId, String documentId, Collection<Annotation> annotations) {
+
+        // FIXME: Get rid of these duplicated lists in subclasses
+        super(userId, documentId, annotations.size(), ImmutableList.of());
+
+        this.annotations = ImmutableList.copyOf(annotations);
     }
 
     public List<Annotation> getAnnotations() {
         return Collections.unmodifiableList(annotations);
     }
 
-    @XmlElementWrapper(name = "annotations")
-    @XmlElement(name = "annotation")
-    public void setAnnotations(Collection<Annotation> annotations) {
-        this.annotations.clear();
-        this.annotations.addAll(annotations);
-    }
-
+    @Override
+    // annotations is immutable, so the cast is safe, people can't add a Term
+    // to the Annotations list.
+    @SuppressWarnings("unchecked")
     public List<Term> getTerms() {
-        List<Term> terms = new ArrayList<Term>();
-        for (Annotation annotation : annotations) {
-            terms.add(new Term(annotation.getName(), annotation.getRaw(), annotation.getValue()));
-        }
-        return terms;
+        return (List)annotations;
     }
 
 }

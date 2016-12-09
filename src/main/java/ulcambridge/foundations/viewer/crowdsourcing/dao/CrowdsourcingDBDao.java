@@ -48,6 +48,7 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -76,13 +77,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     public DocumentAnnotations getAnnotations(String userId, String documentId, int documentPageNo) {
         List<Annotation> annotations = sqlGetAnnotations(userId, documentId, documentPageNo);
 
-        DocumentAnnotations da = new DocumentAnnotations();
-        da.setAnnotations(annotations);
-        da.setUserId(userId);
-        da.setDocumentId(documentId);
-        da.setTotal(annotations.size());
-
-        return da;
+        return new DocumentAnnotations(userId, documentId, annotations);
     }
 
     @Override
@@ -115,16 +110,8 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
         return queryJsonOptional(DocumentTags.class, GET_REMOVED_TAGS_QUERY, userId,
                          documentId)
-            .orElseGet(() -> {
-                // FIXME: Make model classes immutable
-                // FIXME: Get rid of nullable fields on model classes
-                // FIXME: Get rid of no-arg constructors on model classes
-                DocumentTags dt = new DocumentTags();
-                dt.setUserId(userId);
-                dt.setDocumentId(documentId);
-                dt.setTags(new ArrayList<>());
-                return dt;
-            });
+            .orElseGet(() ->
+                new DocumentTags(userId, documentId, Collections.emptyList()));
     }
 
     @Override
@@ -145,8 +132,8 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             UUID.randomUUID(), Utils.getCurrentDateTime(),
             annotation.getPosition()));
 
-        da.setAnnotations(annotations);
-        da.setTotal(annotations.size());
+        da = new DocumentAnnotations(
+            da.getUserId(), da.getDocumentId(), annotations);
 
         JsonObject newJson = new JSONConverter().toJsonDocumentAnnotations(da);
 
@@ -267,21 +254,21 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     }
 
     @Override
-    public UpsertResult<DocumentTags> addRemovedTag(String userId, String documentId, Tag removedTag) throws SQLException {
+    public UpsertResult<DocumentTags> addRemovedTag(
+        String userId, String documentId, Tag removedTag) throws SQLException {
+
         DocumentTags dt = getRemovedTags(userId, documentId);
 
-        List<Tag> removedTags = dt.getTags();
+        List<Tag> removedTags = dt.getTags().stream()
+            .filter(((Predicate<Object>)removedTag::equals).negate())
+            .collect(Collectors.toList());
 
-        boolean exists = removedTags.contains(removedTag);
-        if(exists)
-            removedTags.remove(removedTag);
-
-        removedTags.add(removedTag);
-        dt.setTotal(removedTags.size());
+        boolean created = removedTags.size() > dt.getTags().size();
+        dt = new DocumentTags(dt.getUserId(), dt.getDocumentId(), removedTags);
 
         sqlUpsertRemovedTags(dt);
 
-        return CrowdsourcingDao.upsertResult(dt, !exists);
+        return CrowdsourcingDao.upsertResult(dt, created);
     }
 
     public boolean removeRemovedTag(
@@ -297,8 +284,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         if(!removed)
             return false;
 
-        dt.setTags(tags);
-        dt.setTotal(tags.size()); // -_-
+        dt = new DocumentTags(dt.getUserId(), dt.getDocumentId(), tags);
         return sqlUpsertRemovedTags(dt) > 0;
     }
 
@@ -504,10 +490,8 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
                     documentId, userId);
         }
         catch(IncorrectResultSizeDataAccessException e) {
-            DocumentAnnotations da = new DocumentAnnotations();
-            da.setDocumentId(documentId);
-            da.setUserId(userId);
-            return da;
+            return new DocumentAnnotations(
+                userId, documentId, Collections.emptyList());
         }
     }
 
