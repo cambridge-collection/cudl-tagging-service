@@ -18,9 +18,11 @@ public class Position {
     private final List<Point2D> coordinates;
 
     @JsonCreator
-    public Position(String type, Iterable<? extends Point2D> coordinates) {
-        Assert.notNull(type);
-        Assert.notNull(coordinates);
+    public Position(
+        String type,
+        @JsonProperty(required = true)
+            Iterable<? extends Point2D> coordinates) {
+        Assert.notNull(coordinates, "coordinates was null");
 
         this.type = type;
         this.coordinates = ImmutableList.copyOf(coordinates);
