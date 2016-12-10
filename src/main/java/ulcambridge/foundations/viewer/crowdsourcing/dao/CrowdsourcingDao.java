@@ -24,8 +24,6 @@ public interface CrowdsourcingDao {
 
     public DocumentAnnotations getAnnotations(String userId, String documentId);
 
-    public DocumentAnnotations getAnnotationsByDocument(String documentId);
-
     Collection<Term> getMergedAnnotationsByDocument(String documentId);
 
     Collection<Term> getMergedRemovedTagsByDocument(String documentId);
@@ -37,8 +35,6 @@ public interface CrowdsourcingDao {
     Tag getRemovedTag(String userId, String documentId, String tagName);
 
     public DocumentTags getRemovedTags(String userId, String documentId);
-
-    public DocumentTags getRemovedTagsByDocument(String documentId);
 
     public Annotation addAnnotation(String userId, String documentId, Annotation annotation) throws SQLException;
 

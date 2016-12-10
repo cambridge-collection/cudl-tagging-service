@@ -23,7 +23,6 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentAnnotations;
 import ulcambridge.foundations.viewer.crowdsourcing.model.DocumentTags;
 import ulcambridge.foundations.viewer.crowdsourcing.model.GsonFactory;
-import ulcambridge.foundations.viewer.crowdsourcing.model.JSONConverter;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Term;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Terms;
@@ -305,40 +304,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         }, GET_DOCUMENT_ANNOTATIONS_QUERY, documentId);
     }
 
-    @Override
-    public DocumentAnnotations getAnnotationsByDocument(String documentId) {
-        // query
-        List<JsonObject> docAnnotationList = sqlGetAnnotationsByDocument(documentId);
-
-        JSONConverter jc = new JSONConverter();
-
-        Set<Annotation> annotations = new HashSet<Annotation>();
-        for (JsonObject docAnnos : docAnnotationList) {
-            if (!docAnnos.has("annotations"))
-                continue;
-            JsonArray annos = docAnnos.getAsJsonArray("annotations");
-            Iterator<JsonElement> it = annos.iterator();
-            while (it.hasNext()) {
-                JsonObject anno = (JsonObject) it.next();
-                Annotation annotation = jc.toAnnotation(anno);
-                annotations.add(annotation);
-            }
-        }
-
-        JsonObject json = new JsonObject();
-        JsonArray distinctAnnos = new JsonArray();
-
-        for (Annotation annotation : annotations) {
-            distinctAnnos.add(jc.toJsonAnnotation(annotation));
-        }
-
-        json.addProperty("docId", documentId);
-        json.addProperty("total", distinctAnnos.size());
-        json.add("annotations", distinctAnnos);
-
-        return jc.toDocumentAnnotations(json);
-    }
-
     private static final String GET_DOCUMENT_REMOVED_TAGS_QUERY =
         "SELECT tag\n" +
         "FROM\n" +
@@ -368,40 +333,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
                 throw new UncheckedIOException(e);
             }
         };
-    }
-
-    @Override
-    public DocumentTags getRemovedTagsByDocument(String documentId) {
-        // query
-        List<JsonObject> docRemovedTagList = sqlGetRemovedTagsByDocument(documentId);
-
-        JSONConverter jc = new JSONConverter();
-
-        Set<Tag> removedTags = new HashSet<Tag>();
-        for (JsonObject docRemovedTags : docRemovedTagList) {
-            if (!docRemovedTags.has("tags"))
-                continue;
-            JsonArray rmvTags = docRemovedTags.getAsJsonArray("tags");
-            Iterator<JsonElement> it = rmvTags.iterator();
-            while (it.hasNext()) {
-                JsonObject rmvTag = (JsonObject) it.next();
-                Tag tag = jc.toTag(rmvTag);
-                removedTags.add(tag);
-            }
-        }
-
-        JsonObject json = new JsonObject();
-        JsonArray distinctRemovedTags = new JsonArray();
-
-        for (Tag tag : removedTags) {
-            distinctRemovedTags.add(jc.toJsonTag(tag));
-        }
-
-        json.addProperty("docId", documentId);
-        json.addProperty("total", distinctRemovedTags.size());
-        json.add("tags", distinctRemovedTags);
-
-        return jc.toDocumentTags(json);
     }
 
     @Override
@@ -627,30 +558,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
         return jdbcTemplate.update(
             query, json, uid, did, uid, did, json, uid, did);
-    }
-
-    private List<JsonObject> sqlGetAnnotationsByDocument(final String documentId) {
-        String query = "SELECT annos FROM \"DocumentAnnotations\" WHERE \"docId\" = ?";
-
-        return jdbcTemplate.query(query, new Object[] { documentId }, new RowMapper<JsonObject>() {
-            @Override
-            public JsonObject mapRow(ResultSet rs, int rowNum) throws SQLException {
-                String tag = rs.getString("annos");
-                return (JsonObject) new JsonParser().parse(tag);
-            }
-        });
-    }
-
-    private List<JsonObject> sqlGetRemovedTagsByDocument(String documentId) {
-        String query = "SELECT removedtags FROM \"DocumentRemovedTags\" WHERE \"docId\" = ?";
-
-        return jdbcTemplate.query(query, new Object[] { documentId }, new RowMapper<JsonObject>() {
-            @Override
-            public JsonObject mapRow(ResultSet rs, int rowNum) throws SQLException {
-                String removedTag = rs.getString("removedtags");
-                return (JsonObject) new JsonParser().parse(removedTag);
-            }
-        });
     }
 
     private List<JsonObject> sqlGetAnnotationsByUser(final String userId) {
