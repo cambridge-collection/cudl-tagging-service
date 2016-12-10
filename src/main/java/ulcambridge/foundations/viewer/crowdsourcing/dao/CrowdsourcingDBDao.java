@@ -226,13 +226,16 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     }
 
     @Override
-    public int addTag(String documentId, DocumentTags documentTags) throws SQLException {
-        JsonObject newJson = new JSONConverter().toJsonDocumentTags(documentTags);
+    public int addTag(DocumentTags documentTags) throws SQLException {
 
-        // query
-        int rowsAffected = sqlUpsertTag(documentId, newJson);
+        String docId = documentTags.getDocumentId();
+        Assert.notNull(docId);
+        PGobject json = jsonValue(documentTags);
 
-        return 1;
+        return jdbcTemplate.update(
+            "INSERT INTO \"DocumentTags\" (\"docId\", tags) VALUES (?, ?)\n" +
+            "ON CONFLICT (\"docId\") DO UPDATE SET tags = ?;",
+            docId, json, json);
     }
 
     @Override
@@ -599,17 +602,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         json.setValue(newJson.toString());
 
         return jdbcTemplate.update(query, new Object[] { json, userId, documentId });
-    }
-
-    private int sqlUpsertTag(String documentId, JsonObject newJson) throws SQLException {
-        String query = "UPDATE \"DocumentTags\" SET \"tags\" = ? WHERE \"docId\" = ?; " + "INSERT INTO \"DocumentTags\" (\"docId\", \"tags\") "
-                + "SELECT ?, ? " + "WHERE NOT EXISTS (SELECT * FROM \"DocumentTags\" WHERE \"docId\" = ?);";
-
-        PGobject json = new PGobject();
-        json.setType("json");
-        json.setValue(newJson.toString());
-
-        return jdbcTemplate.update(query, new Object[] { json, documentId, documentId, json, documentId });
     }
 
     private int sqlUpsertRemovedTags(DocumentTags docTags) throws SQLException {
