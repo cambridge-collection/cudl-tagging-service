@@ -327,43 +327,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         });
     }
 
-    private static final class GsonRowMapper<T> implements RowMapper<T> {
-        private final Class<T> clazz;
-        private final int columnIndex;
-        private final Gson gson;
-
-        public GsonRowMapper(Class<T> clazz) {
-            this(clazz, 1, GsonFactory.create());
-        }
-
-        public GsonRowMapper(Class<T> clazz, int jsonColumnIndex, Gson gson) {
-            if(jsonColumnIndex < 1)
-                throw new IllegalArgumentException(
-                        "index must be >= 1, got: " + jsonColumnIndex);
-
-            if(clazz == null)
-                throw new IllegalArgumentException("class was null");
-
-            if(gson == null)
-                throw new IllegalArgumentException("gson was null");
-
-
-            this.columnIndex = jsonColumnIndex;
-            this.clazz = clazz;
-            this.gson = gson;
-        }
-
-        @Override
-        public T mapRow(ResultSet rs, int rowNum) throws SQLException {
-            try {
-                return this.gson.fromJson(rs.getString(this.columnIndex), clazz);
-            }
-            catch(JsonSyntaxException e) {
-                throw new SQLException("Unable to map json to " + this.clazz, e);
-            }
-        }
-    }
-
     private List<Annotation> sqlGetAnnotations(final String userId, final String documentId, final int documentPageNo) {
         String query =
                 "SELECT annotations\n" +
@@ -390,51 +353,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             "  \"DocumentAnnotations\"\n" +
             "WHERE \"docId\" = ? AND oid = ?\n" +
             "LIMIT 1;";
-
-    private static final RowMapper<JsonObject> JSON_OBJECT_ROW_MAPPER =
-            new GsonRowMapper<JsonObject>(JsonObject.class);
-
-
-    /**
-     * Get all of a user's annotations for a given document.
-     */
-    private JsonObject getUserDocumentAnnotations(String userId, String documentId) {
-        return jdbcTemplate.queryForObject(
-                SQL_USER_DOCUMENT_ANNOTATIONS, JSON_OBJECT_ROW_MAPPER,
-                documentId, userId);
-    }
-
-    private JsonObject sqlGetTags(final String documentId) {
-        String query = "SELECT tags FROM \"DocumentTags\" WHERE \"docId\" = ?";
-
-        return jdbcTemplate.query(query, new Object[] { documentId }, new ResultSetExtractor<JsonObject>() {
-            @Override
-            public JsonObject extractData(ResultSet rs) throws SQLException, DataAccessException {
-                List<String> dts = new ArrayList<String>();
-                while (rs.next()) {
-                    String json = rs.getString("tags");
-                    dts.add(json);
-                }
-                return (dts.isEmpty()) ? new JsonObject() : (JsonObject) new JsonParser().parse(dts.get(0));
-            }
-        });
-    }
-
-    private JsonObject sqlGetRemovedTags(final String userId, final String documentId) {
-        String query = "SELECT removedtags FROM \"DocumentRemovedTags\" WHERE \"oid\" = ? AND \"docId\" = ?";
-
-        return jdbcTemplate.query(query, new Object[] { userId, documentId }, new ResultSetExtractor<JsonObject>() {
-            @Override
-            public JsonObject extractData(ResultSet rs) throws SQLException, DataAccessException {
-                List<String> removedTags = new ArrayList<String>();
-                while (rs.next()) {
-                    String json = rs.getString("removedtags");
-                    removedTags.add(json);
-                }
-                return (removedTags.isEmpty()) ? new JsonObject() : (JsonObject) new JsonParser().parse(removedTags.get(0));
-            }
-        });
-    }
 
     private PGobject jsonValue(Object value)
         throws SQLException {
@@ -465,16 +383,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         return jdbcTemplate.update(query, da.getUserId(), da.getDocumentId(), annoJson, annoJson);
     }
 
-    private int sqlUpdateAnnotations(String userId, String documentId, JsonObject newJson) throws SQLException {
-        String query = "UPDATE \"DocumentAnnotations\" SET \"annos\" = ? WHERE \"oid\" = ? AND \"docId\" = ?;";
-
-        PGobject json = new PGobject();
-        json.setType("json");
-        json.setValue(newJson.toString());
-
-        return jdbcTemplate.update(query, new Object[] { json, userId, documentId });
-    }
-
     private int sqlUpsertRemovedTags(DocumentTags docTags) throws SQLException {
         String query = "UPDATE \"DocumentRemovedTags\" SET \"removedtags\" = ? WHERE \"oid\" = ? AND \"docId\" = ?; "
                 + "INSERT INTO \"DocumentRemovedTags\" (\"oid\", \"docId\", \"removedtags\") " + "SELECT ?, ?, ? "
@@ -498,18 +406,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
         return jdbcTemplate.update(
             query, json, uid, did, uid, did, json, uid, did);
-    }
-
-    private List<JsonObject> sqlGetAnnotationsByUser(final String userId) {
-        String query = "SELECT annos FROM \"DocumentAnnotations\" WHERE \"oid\" = ?";
-
-        return jdbcTemplate.query(query, new Object[] { userId }, new RowMapper<JsonObject>() {
-            @Override
-            public JsonObject mapRow(ResultSet rs, int rowNum) throws SQLException {
-                String tag = rs.getString("annos");
-                return (JsonObject) new JsonParser().parse(tag);
-            }
-        });
     }
 
     @FunctionalInterface
