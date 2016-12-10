@@ -113,12 +113,16 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             String userId, String documentId, Annotation annotation)
             throws SQLException {
 
-        DocumentAnnotations da = sqlGetAnnotations(userId, documentId);
-        List<Annotation> annotations = new ArrayList<>(da.getTerms());
-
-        if (annotations.contains(annotation)) {
-            annotations.remove(annotation);
-        }
+        List<Annotation> annotations =
+            queryJsonOptional(
+                DocumentAnnotations.class,
+                SQL_USER_DOCUMENT_ANNOTATIONS, documentId, userId)
+            .map(DocumentAnnotations::getTerms)
+            .orElse(Collections.emptyList())
+            .stream()
+            // Remove any matching annotation
+            .filter(((Predicate<Annotation>)annotation::equals).negate())
+            .collect(Collectors.toList());
 
         annotations.add(new Annotation(
             annotation.getName(), annotation.getRaw(), annotation.getValue(),
@@ -126,13 +130,10 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             UUID.randomUUID(), Utils.getCurrentDateTime(),
             annotation.getPosition()));
 
-        da = new DocumentAnnotations(
-            da.getUserId(), da.getDocumentId(), annotations);
+        DocumentAnnotations da = new DocumentAnnotations(
+            userId, documentId, annotations);
 
-        JsonObject newJson = new JSONConverter().toJsonDocumentAnnotations(da);
-
-        // query
-        int rowsAffected = sqlUpsertAnnotations(userId, documentId, newJson);
+        sqlUpsertAnnotations(da);
 
         return annotation;
     }
@@ -561,16 +562,33 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         });
     }
 
-    private int sqlUpsertAnnotations(String userId, String documentId, JsonObject newJson) throws SQLException {
-        String query = "UPDATE \"DocumentAnnotations\" SET \"annos\" = ? WHERE \"oid\" = ? AND \"docId\" = ?; "
-                + "INSERT INTO \"DocumentAnnotations\" (\"oid\", \"docId\", \"annos\") " + "SELECT ?, ?, ? "
-                + "WHERE NOT EXISTS (SELECT * FROM \"DocumentAnnotations\" WHERE \"oid\" = ? AND \"docId\" = ?);";
+    private PGobject jsonValue(Object value)
+        throws SQLException {
 
-        PGobject json = new PGobject();
-        json.setType("json");
-        json.setValue(newJson.toString());
+        PGobject obj = new PGobject();
+        obj.setType("json");
+        try {
+            obj.setValue(this.objectMapper.writeValueAsString(value));
+        }
+        catch(JsonProcessingException e) {
+            throw new UncheckedIOException(e);
+        }
+        return obj;
+    }
 
-        return jdbcTemplate.update(query, new Object[] { json, userId, documentId, userId, documentId, json, userId, documentId });
+    private int sqlUpsertAnnotations(DocumentAnnotations da)
+        throws SQLException {
+
+        String query =
+            "INSERT INTO \"DocumentAnnotations\" (oid, \"docId\", annos) \n" +
+            "VALUES (?, ?, ?) \n" +
+            "ON CONFLICT (oid, \"docId\") DO UPDATE SET annos=?;";
+
+        Assert.notNull(da.getUserId());
+        Assert.notNull(da.getDocumentId());
+
+        PGobject annoJson = jsonValue(da);
+        return jdbcTemplate.update(query, da.getUserId(), da.getDocumentId(), annoJson, annoJson);
     }
 
     private int sqlUpdateAnnotations(String userId, String documentId, JsonObject newJson) throws SQLException {
