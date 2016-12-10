@@ -3,8 +3,6 @@ package ulcambridge.foundations.viewer.crowdsourcing.dao;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -81,7 +79,18 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
     @Override
     public DocumentAnnotations getAnnotations(String userId, String documentId) {
-        return sqlGetAnnotations(userId, documentId);
+        return getAnnotationsOpt(userId, documentId)
+            .orElseGet(() -> new DocumentAnnotations(
+                userId, documentId, Collections.emptyList()));
+    }
+
+
+    public Optional<DocumentAnnotations> getAnnotationsOpt(
+        String userId, String documentId) {
+
+        return queryJsonOptional(
+            DocumentAnnotations.class, SQL_USER_DOCUMENT_ANNOTATIONS,
+            documentId, userId);
     }
 
     @Override
@@ -148,80 +157,27 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             String userId, String documentId, Collection<UUID> annotationIds)
             throws SQLException {
 
-        JsonObject json;
-        try {
-            json = getUserDocumentAnnotations(userId, documentId);
-        }
-        catch(IncorrectResultSizeDataAccessException e) {
-            return Collections.emptySet();
-        }
+        DocumentAnnotations annotations = this.getAnnotations(
+            userId, documentId);
 
-        Set<UUID> removed = removeAnnotationsWithIds(json, annotationIds);
+        Set<UUID> toRemove = new HashSet<>(annotationIds);
 
-        if(removed.size() > 0)
-            sqlUpdateAnnotations(userId, documentId, json);
+        // Partition annotations into two groups: to be removed and to be kept.
+        Map<Boolean, List<Annotation>> partitionedAnnotations =
+            annotations.getTerms().stream()
+                .collect(Collectors.partitioningBy(
+                    a -> toRemove.contains(a.getUuid())));
 
-        return removed;
-    }
+        Set<UUID> removed = partitionedAnnotations.get(true).stream()
+            .map(Annotation::getUuid)
+            .collect(Collectors.toSet());
 
-    private Set<UUID> removeAnnotationsWithIds(
-            JsonObject json, Collection<UUID> annotationIds)
-            throws SQLException {
-
-        if(!(json.has("annotations") && json.get("annotations").isJsonArray()))
-            throw new SQLException(
-                    "JSON's top-level \"annotations\" field is not an array");
-
-        JsonArray annotations = json.getAsJsonArray("annotations");
-        JsonArray remainingAnnotations = new JsonArray();
-
-        Set<UUID> removed = removeAnnotationsWithIds(
-                annotations, remainingAnnotations, new HashSet<UUID>(annotationIds));
-
-        json.add("annotations", remainingAnnotations);
+        if(!removed.isEmpty())
+            sqlUpsertAnnotations(new DocumentAnnotations(
+                annotations.getUserId(), annotations.getDocumentId(),
+                partitionedAnnotations.get(false)));
 
         return removed;
-    }
-
-    private Set<UUID> removeAnnotationsWithIds(JsonArray annotations, JsonArray remaining, Set<UUID> annotationIds)
-            throws SQLException {
-
-        if(remaining == null || remaining.size() != 0)
-            throw new IllegalArgumentException(
-                    "remaining must be an empty JsonArray");
-
-        Set<UUID> removed = new HashSet<UUID>();
-        for(JsonElement e : annotations) {
-            if(!e.isJsonObject()) {
-                remaining.add(e);
-                continue;
-            }
-
-            UUID uuid = getUuid("uuid", e.getAsJsonObject().get("uuid"));
-            if(annotationIds.contains(uuid)) {
-                removed.add(uuid);
-            }
-            else {
-                remaining.add(e);
-            }
-        }
-
-        return removed;
-    }
-
-    private UUID getUuid(String fieldName, JsonElement e) throws SQLException {
-        if(e == null || !(e.isJsonPrimitive() && e.getAsJsonPrimitive().isString()))
-            throw new SQLException(String.format("%s is not a string", fieldName));
-
-        String uuid = e.getAsJsonPrimitive().getAsString();
-        try {
-            return UUID.fromString(uuid);
-        }
-        catch(IllegalArgumentException ex) {
-            String msg = String.format("Field %s contained an invalid UUID: %s",
-                                        fieldName, uuid);
-            throw new SQLException(msg, ex);
-        }
     }
 
     @Override
@@ -405,22 +361,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             catch(JsonSyntaxException e) {
                 throw new SQLException("Unable to map json to " + this.clazz, e);
             }
-        }
-    }
-
-    private static final RowMapper<DocumentAnnotations> DOC_ANNOTATIONS_ROW_MAPPER =
-            new GsonRowMapper<DocumentAnnotations>(DocumentAnnotations.class);
-
-    private DocumentAnnotations sqlGetAnnotations(final String userId, final String documentId) {
-        try {
-            return jdbcTemplate.queryForObject(
-                    SQL_USER_DOCUMENT_ANNOTATIONS,
-                    DOC_ANNOTATIONS_ROW_MAPPER,
-                    documentId, userId);
-        }
-        catch(IncorrectResultSizeDataAccessException e) {
-            return new DocumentAnnotations(
-                userId, documentId, Collections.emptyList());
         }
     }
 
