@@ -1,5 +1,8 @@
 package ulcambridge.foundations.viewer.crowdsourcing.config;
 
+import com.fasterxml.jackson.databind.Module;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.guava.GuavaModule;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -61,5 +64,17 @@ public class CrowdsourcingConfig {
     @Bean
     public RestTemplate restTemplate() {
         return new RestTemplate();
+    }
+
+    /**
+     * Add Google Guava support to the Jackson {@link ObjectMapper}.
+     *
+     * <p>Beans of type {@link Module} are
+     * <a href="http://docs.spring.io/spring-boot/docs/current/reference/html/howto-spring-mvc.html#howto-customize-the-jackson-objectmapper">
+     *     automatically added to the default Spring Boot ObjectMapper bean</a>.
+     */
+    @Bean
+    public Module guavaModule() {
+        return new GuavaModule();
     }
 }
