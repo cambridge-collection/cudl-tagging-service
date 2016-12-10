@@ -87,18 +87,12 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
     @Override
     public DocumentTags getTagsByDocument(String documentId) {
-        // query
-        JsonObject dt = sqlGetTags(documentId);
+        List<Tag> tags = queryJsonList(Tag.class,
+            "SELECT tag\n" +
+            "FROM \"DocumentTags\", json_array_elements(tags->'tags') as tag\n" +
+            "WHERE \"docId\" = ?", documentId);
 
-        if (!dt.has("docId")) {
-            dt.addProperty("docId", documentId);
-        }
-        if(!dt.has("tags")) {
-            dt.add("tags", new JsonArray());
-            dt.addProperty("total", 0);
-        }
-
-        return new JSONConverter().toDocumentTags(dt);
+        return new DocumentTags(null, documentId, tags);
     }
 
     private static final String GET_REMOVED_TAGS_QUERY =
