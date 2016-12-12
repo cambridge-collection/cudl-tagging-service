@@ -1,6 +1,7 @@
 package ulcambridge.foundations.viewer.crowdsourcing.model;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -16,6 +17,7 @@ import java.util.UUID;
  * @author Lei
  *
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Annotation extends Term {
 
     private final String target;
@@ -116,8 +118,7 @@ public class Annotation extends Term {
                 append(page, rhs.getPage()).
                 append(target, rhs.getTarget()).
                 append(type, rhs.getType()).
-                append(position.getType(), rhs.getPosition().getType()).
-                append(position.getCoordinates(), rhs.getPosition().getCoordinates()).
+                append(position, rhs.getPosition()).
                 isEquals();
         }
     }
@@ -136,7 +137,7 @@ public class Annotation extends Term {
                     append(page).
                     append(target).
                     append(type).
-                    append(position.getType()).
+                    append(position).
                     toHashCode();
         }
     }
