@@ -26,7 +26,7 @@ public class Utils {
     /**
      * @return a DateFormat instance safe for the current thread to use.
      */
-    private static final DateFormat getDateFormat() {
+    private static DateFormat getDateFormat() {
         DateFormat f = DATE_FORMATS.get();
 
         if(f == null) {
@@ -50,7 +50,7 @@ public class Utils {
         return f;
     }
 
-    public static final String formatDate(Date date) {
+    public static String formatDate(Date date) {
         return getDateFormat().format(date);
     }
 

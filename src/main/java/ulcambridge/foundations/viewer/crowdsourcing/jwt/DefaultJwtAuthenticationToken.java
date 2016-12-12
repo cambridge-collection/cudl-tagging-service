@@ -48,13 +48,13 @@ public class DefaultJwtAuthenticationToken<P>
         ROLE_USER_AUTHORITY_EXTRACTOR =
         fixedAuthorityList(authoritiesFromRoles("user"));
 
-    public static final Function<Jws<Claims>, Collection<GrantedAuthority>>
+    public static Function<Jws<Claims>, Collection<GrantedAuthority>>
     fixedAuthorityList(GrantedAuthority... grantedAuthorities) {
 
         return fixedAuthorityList(Arrays.asList(grantedAuthorities));
     }
 
-    public static final Function<Jws<Claims>, Collection<GrantedAuthority>>
+    public static Function<Jws<Claims>, Collection<GrantedAuthority>>
     fixedAuthorityList(Collection<GrantedAuthority> grantedAuthorities) {
 
         List<GrantedAuthority> authorities = ImmutableList.copyOf(
@@ -63,13 +63,13 @@ public class DefaultJwtAuthenticationToken<P>
         return jws -> authorities;
     }
 
-    public static final Collection<GrantedAuthority> authoritiesFromRoles(
+    public static Collection<GrantedAuthority> authoritiesFromRoles(
         String... roleNames) {
 
         return authoritiesFromRoles(Arrays.asList(roleNames));
     }
 
-    public static final Collection<GrantedAuthority> authoritiesFromRoles(
+    public static Collection<GrantedAuthority> authoritiesFromRoles(
         Collection<String> roleNames) {
 
         return roleNames.stream()
