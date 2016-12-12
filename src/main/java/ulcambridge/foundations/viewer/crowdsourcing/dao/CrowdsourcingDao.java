@@ -20,23 +20,23 @@ import java.util.UUID;
  */
 public interface CrowdsourcingDao {
 
-    public DocumentAnnotations getAnnotations(String userId, String documentId, int documentPageNo);
+    DocumentAnnotations getAnnotations(String userId, String documentId, int documentPageNo);
 
-    public DocumentAnnotations getAnnotations(String userId, String documentId);
+    DocumentAnnotations getAnnotations(String userId, String documentId);
 
     Collection<Term> getMergedAnnotationsByDocument(String documentId);
 
     Collection<Term> getMergedRemovedTagsByDocument(String documentId);
 
-    public UserAnnotations getAnnotationsByUser(String userId);
+    UserAnnotations getAnnotationsByUser(String userId);
 
-    public DocumentTags getTagsByDocument(String documentId);
+    DocumentTags getTagsByDocument(String documentId);
 
     Tag getRemovedTag(String userId, String documentId, String tagName);
 
-    public DocumentTags getRemovedTags(String userId, String documentId);
+    DocumentTags getRemovedTags(String userId, String documentId);
 
-    public Annotation addAnnotation(String userId, String documentId, Annotation annotation) throws SQLException;
+    Annotation addAnnotation(String userId, String documentId, Annotation annotation) throws SQLException;
 
     int addTag(DocumentTags documentTags) throws SQLException;
 
@@ -44,7 +44,7 @@ public interface CrowdsourcingDao {
 
     boolean removeRemovedTag(String userId, String documentId, String tagName) throws SQLException;
 
-    public boolean removeAnnotation(String userId, String documentId, UUID annotationUuid) throws SQLException;
+    boolean removeAnnotation(String userId, String documentId, UUID annotationUuid) throws SQLException;
 
     /**
      * Remove multiple annotations owned by a single user from a document.
@@ -57,9 +57,9 @@ public interface CrowdsourcingDao {
      */
     Set<UUID> removeAnnotations(String userId, String documentId, Collection<UUID> annotationIds) throws SQLException;
 
-    public List<String> getAnnotatedDocuments();
+    List<String> getAnnotatedDocuments();
 
-    public List<String> getTaggedDocuments();
+    List<String> getTaggedDocuments();
 
     interface UpsertResult<T> {
         T getValue();
