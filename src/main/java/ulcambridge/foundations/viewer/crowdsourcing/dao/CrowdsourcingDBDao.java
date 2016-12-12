@@ -71,8 +71,17 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
     }
 
     @Override
-    public DocumentAnnotations getAnnotations(String userId, String documentId, int documentPageNo) {
-        List<Annotation> annotations = sqlGetAnnotations(userId, documentId, documentPageNo);
+    public DocumentAnnotations getAnnotations(
+        String userId, String documentId, int documentPageNo) {
+
+        List<Annotation> annotations = queryJsonList(
+            Annotation.class,
+            "SELECT annotations\n" +
+            "FROM\n" +
+            "  \"DocumentAnnotations\",\n" +
+            "  json_array_elements(annos->'annotations') as annotations\n" +
+            "WHERE \"docId\" = ? AND oid = ? AND (annotations->>'page')::int = ?;\n",
+            documentId, userId, documentPageNo);
 
         return new DocumentAnnotations(userId, documentId, annotations);
     }
@@ -323,26 +332,6 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             public String mapRow(ResultSet rs, int rowNum) throws SQLException {
                 String docId = rs.getString("docId");
                 return docId;
-            }
-        });
-    }
-
-    private List<Annotation> sqlGetAnnotations(final String userId, final String documentId, final int documentPageNo) {
-        String query =
-                "SELECT annotations\n" +
-                "FROM\n" +
-                "  \"DocumentAnnotations\",\n" +
-                "  json_array_elements(annos->'annotations') as annotations\n" +
-                "WHERE \"docId\" = ? AND oid = ? AND (annotations->>'page')::int = ?;\n";
-
-        Object[] params = new Object[] {documentId, userId, documentPageNo};
-
-        return jdbcTemplate.query(query, params, new RowMapper<Annotation>() {
-            Gson gson = GsonFactory.create();
-
-            @Override
-            public Annotation mapRow(ResultSet rs, int rowNum) throws SQLException {
-                return gson.fromJson(rs.getString(1), Annotation.class);
             }
         });
     }
