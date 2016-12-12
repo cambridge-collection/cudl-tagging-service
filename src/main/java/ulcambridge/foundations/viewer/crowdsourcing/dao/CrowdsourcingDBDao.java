@@ -304,28 +304,16 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
 
     @Override
     public List<String> getAnnotatedDocuments() {
-        String query = "SELECT DISTINCT \"docId\" FROM \"DocumentAnnotations\"";
-
-        return jdbcTemplate.query(query, new RowMapper<String>() {
-            @Override
-            public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-                String docId = rs.getString("docId");
-                return docId;
-            }
-        });
+        return jdbcTemplate.query(
+            "SELECT DISTINCT \"docId\" FROM \"DocumentAnnotations\"",
+            (rs, r) -> rs.getString(1));
     }
 
     @Override
     public List<String> getTaggedDocuments() {
-        String query = "SELECT DISTINCT \"docId\" FROM \"DocumentTags\"";
-
-        return jdbcTemplate.query(query, new RowMapper<String>() {
-            @Override
-            public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-                String docId = rs.getString("docId");
-                return docId;
-            }
-        });
+        return jdbcTemplate.query(
+            "SELECT DISTINCT \"docId\" FROM \"DocumentTags\"",
+            (rs, r) -> rs.getString(1));
     }
 
     private static final String SQL_USER_DOCUMENT_ANNOTATIONS =
