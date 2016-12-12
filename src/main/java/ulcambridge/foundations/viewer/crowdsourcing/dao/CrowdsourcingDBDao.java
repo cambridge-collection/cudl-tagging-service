@@ -18,12 +18,12 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.Tag;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Term;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Terms;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
-import ulcambridge.foundations.viewer.utils.Utils;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -136,7 +136,7 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
         annotations.add(new Annotation(
             annotation.getName(), annotation.getRaw(), annotation.getValue(),
             annotation.getTarget(), annotation.getType(), annotation.getPage(),
-            UUID.randomUUID(), Utils.getCurrentDateTime(),
+            UUID.randomUUID(), Instant.now(),
             annotation.getPosition()));
 
         DocumentAnnotations da = new DocumentAnnotations(

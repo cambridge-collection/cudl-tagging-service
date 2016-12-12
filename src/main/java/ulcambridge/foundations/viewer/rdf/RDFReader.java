@@ -18,6 +18,7 @@ import ulcambridge.foundations.viewer.rdf.vocab.Content;
 import ulcambridge.foundations.viewer.rdf.vocab.Foaf;
 import ulcambridge.foundations.viewer.rdf.vocab.Oa;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.Locale;
 
@@ -79,7 +80,7 @@ public class RDFReader {
         String name = annotation.getName();
         String type = annotation.getType();
         String uuid = annotation.getUuid().toString();
-        Date date = annotation.getDate();
+        Instant date = annotation.getDate();
         StringBuilder posn = new StringBuilder();
         Position position = annotation.getPosition();
 

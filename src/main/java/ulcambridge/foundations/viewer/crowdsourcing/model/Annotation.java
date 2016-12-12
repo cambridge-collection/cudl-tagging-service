@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
+import java.time.Instant;
 import java.util.Date;
 import java.util.Optional;
 import java.util.UUID;
@@ -24,11 +25,11 @@ public class Annotation extends Term {
     private final String type;
     private final int page;
     private final UUID uuid;
-    private final Date date;
+    private final Instant date;
     private final Position position;
 
     public Annotation(String name, int raw, Double value, String target,
-                      String type, int page, UUID uuid, Date date,
+                      String type, int page, UUID uuid, Instant date,
                       Position position) {
 
         super(name, raw, value);
@@ -63,7 +64,7 @@ public class Annotation extends Term {
 
     @JsonProperty("date")
     @JsonSerialize(converter = JsonDateFormat.Serializer.class)
-    public Date getDate() {
+    public Instant getDate() {
         return date;
     }
 
@@ -82,7 +83,7 @@ public class Annotation extends Term {
         @JsonProperty("uuid") UUID uuid,
         @JsonProperty("date")
         @JsonDeserialize(converter = JsonDateFormat.Deserializer.class)
-            Date date,
+            Instant date,
         @JsonProperty("position") Position position) {
 
         return new Annotation(name, raw, value.orElse((double)raw), target,
