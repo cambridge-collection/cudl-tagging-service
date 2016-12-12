@@ -37,7 +37,6 @@ import ulcambridge.foundations.viewer.crowdsourcing.model.TermCombiner;
 import ulcambridge.foundations.viewer.crowdsourcing.model.TermType;
 import ulcambridge.foundations.viewer.crowdsourcing.model.UserAnnotations;
 import ulcambridge.foundations.viewer.rdf.RDFReader;
-import ulcambridge.foundations.viewer.utils.Utils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,8 +44,15 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
 import java.sql.SQLException;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -69,6 +75,22 @@ public class CrowdsourcingController {
     private final TermCombiner.Factory<TermType, Term, Term, Collection<Term>>
         termCombinerFactory;
     private final ImageResolver imageResolver;
+
+    private static final DateTimeFormatter FILENAME_DATE_FORMATTER =
+        new DateTimeFormatterBuilder()
+        .appendValue(ChronoField.YEAR, 4).appendLiteral('-')
+        .appendValue(ChronoField.MONTH_OF_YEAR, 2).appendLiteral('-')
+        .appendValue(ChronoField.DAY_OF_MONTH, 2).appendLiteral('T')
+        .appendValue(ChronoField.HOUR_OF_DAY, 2)
+        .appendValue(ChronoField.MINUTE_OF_HOUR, 2)
+        .appendValue(ChronoField.SECOND_OF_MINUTE, 2)
+        .toFormatter(Locale.UK);
+
+    private static final ZoneId FILENAME_ZONE = ZoneId.of("UTC");
+
+    private static String getFilenameDateString() {
+        return FILENAME_DATE_FORMATTER.format(ZonedDateTime.now(FILENAME_ZONE));
+    }
 
     @Autowired
     public CrowdsourcingController(
@@ -310,7 +332,8 @@ public class CrowdsourcingController {
             }
         }
 
-        response.setHeader("Content-Disposition", "attachment; filename=" + ("USER" + "_" + Utils.getCurrentDateTime().toString()) + ".rdf");
+        response.setHeader("Content-Disposition", "attachment; filename=" +
+            ("USER" + "_" + getFilenameDateString()) + ".rdf");
         response.setHeader("Cache-Control", CACHE_PRIVATE.getHeaderValue());
         response.setHeader("Content-Type", MEDIA_RDF);
 
@@ -339,8 +362,11 @@ public class CrowdsourcingController {
         }
 
         // prepareResp(response, "application/rdf+xml; charset=utf-8");
-        response.setHeader("Content-Disposition", "attachment; filename=" + (documentId + "_" + Utils.getCurrentDateTime().toString()) + ".rdf");
+        response.setHeader("Content-Disposition", "attachment; filename=" +
+            (documentId + "_" + getFilenameDateString()) + ".rdf");
         response.setHeader("Cache-Control", CACHE_PRIVATE.getHeaderValue());
+
+
 
         OutputStream os = response.getOutputStream();
         rr.getModel().write(os, RDFFormat.RDFXML.getLang().getName());
