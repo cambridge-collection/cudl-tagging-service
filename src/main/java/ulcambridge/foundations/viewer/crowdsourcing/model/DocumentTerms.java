@@ -3,7 +3,6 @@ package ulcambridge.foundations.viewer.crowdsourcing.model;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
-import com.google.gson.annotations.SerializedName;
 import org.springframework.util.Assert;
 
 import java.util.List;
@@ -16,11 +15,9 @@ import java.util.List;
 public class DocumentTerms {
 
     @JsonProperty("oid")
-    @SerializedName("oid")
     private final String userId;
 
     @JsonProperty("docId")
-    @SerializedName("docId")
     private final String documentId;
 
     private final ImmutableList<Term> terms;
