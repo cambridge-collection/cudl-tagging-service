@@ -20,13 +20,18 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
+import ulcambridge.foundations.viewer.crowdsourcing.jwt.DefaultJwtAuthenticationToken;
 import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtAuthenticationFilter;
 import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtAuthenticationProvider;
 import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtChallengeGenerators;
+import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtRequestStrategies;
+import ulcambridge.foundations.viewer.crowdsourcing.jwt.JwtRequestStrategy;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.ChallengeGenerators;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.DelegatingAuthenticationFailureHandler;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.Http401AuthenticationEntryPoint;
 import ulcambridge.foundations.viewer.crowdsourcing.springsec.Http401AuthenticationFailureHandler;
+
+import java.util.Optional;
 
 @Configuration
 @EnableWebSecurity
@@ -56,6 +61,44 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
 
         JwtAuthenticationFilter f =
             new JwtAuthenticationFilter(authenticationManager);
+        f.setAuthenticationFailureHandler(authenticationFailureHandler);
+
+        return f;
+    }
+
+    private static final String QUERY_PARAM_TOKEN_FIELD_NAME = "__token__";
+
+    /**
+     * A {@link JwtRequestStrategy} which obtains tokens from the URL query
+     * param <code>{@value #QUERY_PARAM_TOKEN_FIELD_NAME}</code>.
+     */
+    @Bean
+    public JwtRequestStrategy queryParamJwtRequestStrategy() {
+        return JwtRequestStrategies.strategy(req -> {
+            String token = req.getParameter(QUERY_PARAM_TOKEN_FIELD_NAME);
+            return Optional.ofNullable(
+                token == null || token.isEmpty() ? null : token);
+        });
+    }
+
+    /**
+     * A secondary method of providing a JWT auth token for authentication.
+     *
+     * <p>This is required for situations where an Authorization header can't be
+     * set, for example POSTing a form, or a browser download.
+     */
+    @Bean
+    public JwtAuthenticationFilter jwtQueryParamAuthenticationFilter(
+        AuthenticationManager authenticationManager,
+        @Qualifier("queryParamJwtRequestStrategy")
+            JwtRequestStrategy jwtRequestStrategy,
+        @Qualifier("jwtAuthFailureHandler") AuthenticationFailureHandler
+            authenticationFailureHandler) {
+
+        JwtAuthenticationFilter f = new JwtAuthenticationFilter(
+            authenticationManager, jwtRequestStrategy,
+            DefaultJwtAuthenticationToken::unauthenticated);
+
         f.setAuthenticationFailureHandler(authenticationFailureHandler);
 
         return f;
@@ -103,7 +146,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
                 .anyRequest().permitAll()
                 .and()
             .addFilterAfter(
-                beanFactory.getBean(JwtAuthenticationFilter.class),
+                beanFactory.getBean("jwtAuthenticationFilter",
+                                    JwtAuthenticationFilter.class),
+                AbstractPreAuthenticatedProcessingFilter.class)
+            .addFilterAfter(
+                beanFactory.getBean("jwtQueryParamAuthenticationFilter",
+                    JwtAuthenticationFilter.class),
                 AbstractPreAuthenticatedProcessingFilter.class)
             .exceptionHandling()
                 .authenticationEntryPoint(
