@@ -1,0 +1,22 @@
+spring:
+    datasource:
+        url: jdbc:postgresql://localhost:5433/tagging
+        username: bob
+        password: secret
+cudl:
+    tagging:
+        jwt:
+            audience: https://tagging.example.com
+            key:
+                type: shared
+                #location: file:///tmp/mykey.pub
+                value: c2VjcmV0
+                value-encoding: base64
+        # Term ratio
+        weight:
+            meta: 25
+            tag: 5
+            removedtag: 1
+            anno: 1
+    imageserver-base-url: https://images.example.com
+    json-base-url: https://meta.example.com/metadata/json/
