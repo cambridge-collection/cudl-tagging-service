@@ -202,7 +202,8 @@ public class CrowdsourcingController {
      */
     @RequestMapping(value = "/anno/{docId}",
                     method = RequestMethod.DELETE,
-                    consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                    consumes = { MediaType.APPLICATION_FORM_URLENCODED_VALUE,
+                                 MediaType.MULTIPART_FORM_DATA_VALUE})
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Set<UUID>> removeAnnotations(
             @PathVariable("docId") String documentId,
