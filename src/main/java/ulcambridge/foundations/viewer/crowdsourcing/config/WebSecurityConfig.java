@@ -141,6 +141,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter
             // requests.
             .csrf()
                 .disable()
+            .headers()
+                .frameOptions()
+                    .disable()
+                .and()
             .authorizeRequests()
                 // We use annotations on controller methods for enable auth
                 .anyRequest().permitAll()
