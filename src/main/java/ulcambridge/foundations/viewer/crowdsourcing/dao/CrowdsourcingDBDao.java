@@ -219,12 +219,13 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             .filter(((Predicate<Object>)removedTag::equals).negate())
             .collect(Collectors.toList());
 
-        boolean created = removedTags.size() > dt.getTerms().size();
+        boolean updated = removedTags.size() < dt.getTerms().size();
+        removedTags.add(removedTag);
         dt = new DocumentTags(dt.getUserId(), dt.getDocumentId(), removedTags);
 
         sqlUpsertRemovedTags(dt);
 
-        return CrowdsourcingDao.upsertResult(dt, created);
+        return CrowdsourcingDao.upsertResult(dt, !updated);
     }
 
     public boolean removeRemovedTag(
