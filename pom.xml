@@ -55,6 +55,7 @@
                     <!-- Use the local repo with release:perform instead of the
                          upstream repository specified in <scm>. -->
                     <localCheckout>true</localCheckout>
+                    <tagNameFormat>@{project.version}</tagNameFormat>
                 </configuration>
             </plugin>
 
