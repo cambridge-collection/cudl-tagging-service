@@ -1,5 +1,6 @@
 package ulcambridge.foundations.viewer.rdf;
 
+import com.google.common.base.Charsets;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Resource;
@@ -8,7 +9,6 @@ import com.hp.hpl.jena.vocabulary.DCTerms;
 import com.hp.hpl.jena.vocabulary.DCTypes;
 import com.hp.hpl.jena.vocabulary.RDF;
 import io.jsonwebtoken.lang.Assert;
-import org.apache.commons.io.Charsets;
 import org.springframework.http.MediaType;
 import ulcambridge.foundations.viewer.crowdsourcing.model.Annotation;
 import ulcambridge.foundations.viewer.crowdsourcing.model.ImageResolver;
@@ -19,7 +19,6 @@ import ulcambridge.foundations.viewer.rdf.vocab.Foaf;
 import ulcambridge.foundations.viewer.rdf.vocab.Oa;
 
 import java.time.Instant;
-import java.util.Date;
 import java.util.Locale;
 
 /**
