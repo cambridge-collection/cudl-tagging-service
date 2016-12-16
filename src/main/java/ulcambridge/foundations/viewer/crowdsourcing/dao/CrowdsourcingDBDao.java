@@ -133,18 +133,20 @@ public class CrowdsourcingDBDao implements CrowdsourcingDao {
             .filter(((Predicate<Annotation>)annotation::equals).negate())
             .collect(Collectors.toList());
 
-        annotations.add(new Annotation(
+        Annotation created = new Annotation(
             annotation.getName(), annotation.getRaw(), annotation.getValue(),
             annotation.getTarget(), annotation.getType(), annotation.getPage(),
             UUID.randomUUID(), Instant.now(),
-            annotation.getPosition()));
+            annotation.getPosition());
+
+        annotations.add(created);
 
         DocumentAnnotations da = new DocumentAnnotations(
             userId, documentId, annotations);
 
         sqlUpsertAnnotations(da);
 
-        return annotation;
+        return created;
     }
 
     @Override
