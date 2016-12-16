@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import io.jsonwebtoken.lang.Assert;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -13,6 +14,9 @@ import java.util.List;
  *
  */
 public class Position {
+
+    public static final Position EMPTY =
+        new Position(null, Collections.emptyList());
 
     private final String type;
     private final List<Point2D> coordinates;

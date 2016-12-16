@@ -83,12 +83,10 @@ public class RDFReader {
         Instant date = annotation.getDate();
         StringBuilder posn = new StringBuilder();
         Position position = annotation.getPosition();
+        if(position == null)
+            position = Position.EMPTY;
 
-        if (position.getCoordinates().size() <= 0) {
-            posn.append("0,0,0,0");
-        } else {
-            posn.append(position.formatCoordinatesToFragmentSelector());
-        }
+        posn.append(position.formatCoordinatesToFragmentSelector());
         String dziUrl = getDisplayImageURL(documentId, annotation.getPage());
 
         //
